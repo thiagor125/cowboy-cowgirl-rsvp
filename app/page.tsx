@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  increment,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+} from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
@@ -16,12 +22,29 @@ const WAZE_URL = `https://waze.com/ul?q=${encodeURIComponent(ENDERECO)}&navigate
 const YOUTUBE_MUSIC_URL =
   "https://www.youtube.com/embed/eebLcRDgbBg?autoplay=1&loop=1&playlist=eebLcRDgbBg";
 
+const DIAPER_SIZES = ["RN", "P", "M", "G", "XG"] as const;
+
+type DiaperSize = typeof DIAPER_SIZES[number];
+
+type FraldasStats = Record<DiaperSize, number> & {
+  total: number;
+};
+
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState({
     dias: "0",
     horas: "0",
     minutos: "0",
     segundos: "0",
+  });
+
+  const [fraldasStats, setFraldasStats] = useState<FraldasStats>({
+    RN: 0,
+    P: 0,
+    M: 0,
+    G: 0,
+    XG: 0,
+    total: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -59,6 +82,25 @@ export default function Home() {
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const resumoRef = doc(db, "resumos", "fraldas");
+
+    const unsubscribe = onSnapshot(resumoRef, (snapshot) => {
+      const data = snapshot.data();
+
+      setFraldasStats({
+        RN: Number(data?.RN || 0),
+        P: Number(data?.P || 0),
+        M: Number(data?.M || 0),
+        G: Number(data?.G || 0),
+        XG: Number(data?.XG || 0),
+        total: Number(data?.total || 0),
+      });
+    });
+
+    return () => unsubscribe();
   }, []);
 
   function fireConfetti() {
@@ -111,14 +153,40 @@ export default function Home() {
     setLoading(true);
 
     try {
-      await setDoc(doc(db, "confirmacoes", telefoneLimpo), {
-        ...form,
-        telefone: form.telefone,
-        telefoneLimpo,
-        adultos: Number(form.adultos),
-        criancas: Number(form.criancas),
-        quantidadeFraldas: Number(form.quantidadeFraldas),
-        createdAt: serverTimestamp(),
+      await runTransaction(db, async (transaction) => {
+        const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
+        const resumoRef = doc(db, "resumos", "fraldas");
+
+        const confirmacaoExiste = await transaction.get(confirmacaoRef);
+
+        if (confirmacaoExiste.exists()) {
+          throw new Error("duplicado");
+        }
+
+        const quantidade =
+          form.presenca === "sim" ? Number(form.quantidadeFraldas) : 0;
+
+        transaction.set(confirmacaoRef, {
+          ...form,
+          telefone: form.telefone,
+          telefoneLimpo,
+          adultos: Number(form.adultos),
+          criancas: Number(form.criancas),
+          quantidadeFraldas: quantidade,
+          createdAt: serverTimestamp(),
+        });
+
+        if (quantidade > 0) {
+          transaction.set(
+            resumoRef,
+            {
+              [form.fralda]: increment(quantidade),
+              total: increment(quantidade),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
       });
 
       setSuccess(true);
@@ -234,6 +302,8 @@ export default function Home() {
           <h2>Confirme sua presença</h2>
           <p className="center">Prazo para confirmação: <strong>20/06</strong></p>
 
+          <DiaperSuggestion stats={fraldasStats} />
+
           {success ? (
             <div className="success-wrap">
               <div className="success">
@@ -330,6 +400,63 @@ function TimeBox({ label, value }: { label: string; value: string }) {
     <div className="time-box">
       <strong>{value}</strong>
       <small>{label}</small>
+    </div>
+  );
+}
+
+function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
+  const max = Math.max(stats.RN, stats.P, stats.M, stats.G, stats.XG, 1);
+
+  return (
+    <div className="diaper-panel">
+      <div className="diaper-title">
+        <span>🤠</span>
+        <div>
+          <h3>Sugestão de fraldas</h3>
+          <p>Veja os tamanhos já escolhidos e escolha o que achar melhor.</p>
+        </div>
+      </div>
+
+      <div className="diaper-board">
+        {DIAPER_SIZES.map((size, index) => {
+          const count = stats[size];
+          const filled = Math.max(0, Math.round((count / max) * 10));
+
+          return (
+            <div className="diaper-row" key={size}>
+              <div className={`diaper-size ${index % 2 === 0 ? "green-size" : "pink-size"}`}>
+                {size}
+              </div>
+
+              <div className="diaper-icons">
+                {Array.from({ length: 10 }).map((_, iconIndex) => (
+                  <span
+                    key={iconIndex}
+                    className={iconIndex < filled ? "diaper-full" : "diaper-empty"}
+                  >
+                    🍼
+                  </span>
+                ))}
+              </div>
+
+              <div className="diaper-status">
+                {count === max && count > 0
+                  ? "Mais escolhido ✨"
+                  : count === 0
+                  ? "Poucas escolhas"
+                  : "Em andamento"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="diaper-note">
+        <span>🍼 Cada ícone representa a quantidade relativa de pacotes já escolhidos.</span>
+        <strong>Leve o tamanho que quiser! Toda ajuda é muito bem-vinda 🤠💕</strong>
+      </div>
+
+      <p className="diaper-live">🌿 Atualizado em tempo real conforme as confirmações.</p>
     </div>
   );
 }

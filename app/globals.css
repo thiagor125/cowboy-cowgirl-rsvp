@@ -543,3 +543,155 @@ footer strong {
     text-align: center;
   }
 }
+
+.diaper-panel {
+  margin: 30px 0;
+  padding: 26px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, rgba(255, 240, 246, .92), rgba(237, 248, 237, .92));
+  border: 2px dashed rgba(228, 143, 128, .55);
+  box-shadow: 0 24px 70px rgba(80, 45, 25, .10);
+}
+
+.diaper-title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.diaper-title > span {
+  font-size: 46px;
+}
+
+.diaper-title h3 {
+  margin: 0;
+  color: #e48f80;
+  font-size: 34px;
+  font-weight: 950;
+}
+
+.diaper-title p {
+  margin: 6px 0 0;
+  color: #6d584c;
+  font-size: 16px;
+}
+
+.diaper-board {
+  background: rgba(255, 255, 255, .76);
+  border: 1px solid rgba(215, 182, 160, .45);
+  border-radius: 28px;
+  padding: 20px;
+}
+
+.diaper-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 150px;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(215, 182, 160, .4);
+}
+
+.diaper-row:last-child {
+  border-bottom: 0;
+}
+
+.diaper-size {
+  color: white;
+  padding: 14px 10px;
+  border-radius: 18px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 950;
+  box-shadow: inset 0 -8px 20px rgba(0, 0, 0, .08);
+}
+
+.green-size {
+  background: linear-gradient(135deg, #91b28d, #78a673);
+}
+
+.pink-size {
+  background: linear-gradient(135deg, #ff9ba5, #e99591);
+}
+
+.diaper-icons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.diaper-full {
+  opacity: 1;
+  filter: saturate(1.2);
+}
+
+.diaper-empty {
+  opacity: .18;
+  filter: grayscale(1);
+}
+
+.diaper-status {
+  font-size: 17px;
+  font-weight: 900;
+  color: #6d584c;
+  text-align: right;
+}
+
+.diaper-note {
+  margin-top: 22px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .7);
+  display: grid;
+  gap: 10px;
+  color: #6d584c;
+}
+
+.diaper-note strong {
+  color: #478443;
+  font-size: 18px;
+}
+
+.diaper-live {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 15px !important;
+  color: #6d584c;
+}
+
+@media (max-width: 700px) {
+  .diaper-panel {
+    padding: 20px;
+  }
+
+  .diaper-title {
+    align-items: flex-start;
+  }
+
+  .diaper-title h3 {
+    font-size: 28px;
+  }
+
+  .diaper-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .diaper-size {
+    width: 90px;
+    margin: 0 auto;
+  }
+
+  .diaper-icons {
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .diaper-status {
+    text-align: center;
+  }
+}
