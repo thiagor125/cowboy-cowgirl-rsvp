@@ -217,6 +217,10 @@ export default function Home() {
       <div className="decor decor3">?</div>
 
       <aside className="floating-invite">
+        <div className="name-balloon balloon-clarice">
+          <span>💕 Clarice</span>
+        </div>
+
         <Image
           src="/convite1.jpg"
           alt="Convite Cowboy ou Cowgirl"
@@ -225,6 +229,10 @@ export default function Home() {
           priority
           className="invite-img"
         />
+
+        <div className="name-balloon balloon-matteo">
+          <span>💚 Matteo</span>
+        </div>
       </aside>
 
       <section className="content">
