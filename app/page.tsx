@@ -2,16 +2,31 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
 const EVENT_DATE = new Date("2026-07-11T17:00:00");
 const RSVP_LIMIT = new Date("2026-06-20T23:59:59");
 
+const ENDERECO = "Rua Exemplo, 123 - Cidade/UF";
+const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ENDERECO)}`;
+const WAZE_URL = `https://waze.com/ul?q=${encodeURIComponent(ENDERECO)}&navigate=yes`;
+
+const YOUTUBE_MUSIC_URL =
+  "https://www.youtube.com/embed/eebLcRDgbBg?autoplay=1&loop=1&playlist=eebLcRDgbBg";
+
 export default function Home() {
-  const [timeLeft, setTimeLeft] = useState("");
+  const [timeLeft, setTimeLeft] = useState({
+    dias: "0",
+    horas: "0",
+    minutos: "0",
+    segundos: "0",
+  });
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [musicOpen, setMusicOpen] = useState(false);
 
   const [form, setForm] = useState({
     nome: "",
@@ -31,20 +46,52 @@ export default function Home() {
       const diff = EVENT_DATE.getTime() - new Date().getTime();
 
       if (diff <= 0) {
-        setTimeLeft("É hoje!");
+        setTimeLeft({ dias: "0", horas: "0", minutos: "0", segundos: "0" });
         return;
       }
 
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const m = Math.floor((diff / (1000 * 60)) % 60);
-      const s = Math.floor((diff / 1000) % 60);
-
-      setTimeLeft(`${d} dias • ${h}h • ${m}m • ${s}s`);
+      setTimeLeft({
+        dias: String(Math.floor(diff / (1000 * 60 * 60 * 24))),
+        horas: String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, "0"),
+        minutos: String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0"),
+        segundos: String(Math.floor((diff / 1000) % 60)).padStart(2, "0"),
+      });
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
+
+  function fireConfetti() {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    confetti({
+      particleCount: 180,
+      spread: 120,
+      origin: { y: 0.65 },
+    });
+
+    const interval = setInterval(() => {
+      if (Date.now() > end) {
+        clearInterval(interval);
+        return;
+      }
+
+      confetti({
+        particleCount: 12,
+        angle: 60,
+        spread: 70,
+        origin: { x: 0 },
+      });
+
+      confetti({
+        particleCount: 12,
+        angle: 120,
+        spread: 70,
+        origin: { x: 1 },
+      });
+    }, 180);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,11 +101,20 @@ export default function Home() {
       return;
     }
 
+    const telefoneLimpo = form.telefone.replace(/\D/g, "");
+
+    if (telefoneLimpo.length < 10) {
+      alert("Digite um WhatsApp válido.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await addDoc(collection(db, "confirmacoes"), {
+      await setDoc(doc(db, "confirmacoes", telefoneLimpo), {
         ...form,
+        telefone: form.telefone,
+        telefoneLimpo,
         adultos: Number(form.adultos),
         criancas: Number(form.criancas),
         quantidadeFraldas: Number(form.quantidadeFraldas),
@@ -66,9 +122,10 @@ export default function Home() {
       });
 
       setSuccess(true);
+      fireConfetti();
     } catch (error) {
       console.error(error);
-      alert("Erro ao salvar. Verifique as regras do Firebase.");
+      alert("Este WhatsApp já confirmou presença ou houve erro ao salvar.");
     } finally {
       setLoading(false);
     }
@@ -76,6 +133,21 @@ export default function Home() {
 
   return (
     <main className="site">
+      <button type="button" onClick={() => setMusicOpen(!musicOpen)} className="music-btn">
+        {musicOpen ? "🔇 Parar música" : "🎵 Tocar música"}
+      </button>
+
+      {musicOpen && (
+        <div className="music-player">
+          <iframe
+            src={YOUTUBE_MUSIC_URL}
+            title="Música"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          />
+        </div>
+      )}
+
       <div className="decor decor1">?</div>
       <div className="decor decor2">?</div>
       <div className="decor decor3">?</div>
@@ -117,21 +189,31 @@ export default function Home() {
 
           <div className="countdown">
             <span>Contagem regressiva</span>
-            <strong>{timeLeft}</strong>
+
+            <div className="countdown-grid">
+              <TimeBox label="Dias" value={timeLeft.dias} />
+              <TimeBox label="Horas" value={timeLeft.horas} />
+              <TimeBox label="Min" value={timeLeft.minutos} />
+              <TimeBox label="Seg" value={timeLeft.segundos} />
+            </div>
           </div>
         </section>
 
         <section id="local" className="section-card">
           <h2>Localização</h2>
-          <p>
-            Coloque aqui o endereço completo do evento para seus convidados.
-          </p>
+          <p>Coloque aqui o endereço completo do evento para seus convidados.</p>
 
           <div className="map-box">
-            <p>📍 Rua Exemplo, 123 - Cidade/UF</p>
-            <a href="https://maps.google.com" target="_blank">
-              Abrir no Google Maps
-            </a>
+            <p>📍 {ENDERECO}</p>
+
+            <div className="map-actions">
+              <a href={GOOGLE_MAPS_URL} target="_blank" rel="noopener noreferrer">
+                Abrir no Google Maps
+              </a>
+              <a href={WAZE_URL} target="_blank" rel="noopener noreferrer" className="waze">
+                Abrir no Waze
+              </a>
+            </div>
           </div>
         </section>
 
@@ -150,21 +232,10 @@ export default function Home() {
 
         <section id="confirmar" className="section-card rsvp">
           <h2>Confirme sua presença</h2>
-          <p className="center">
-            Prazo para confirmação: <strong>20/06</strong>
-          </p>
+          <p className="center">Prazo para confirmação: <strong>20/06</strong></p>
 
           {success ? (
             <div className="success-wrap">
-              <div className="confetti">
-                <span>💕</span>
-                <span>💙</span>
-                <span>🤠</span>
-                <span>⭐</span>
-                <span>🎁</span>
-                <span>👶</span>
-              </div>
-
               <div className="success">
                 <div className="success-icon">🎉</div>
                 <h3>Presença confirmada!</h3>
@@ -177,51 +248,21 @@ export default function Home() {
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <input
-                required
-                placeholder="Nome completo"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-
-              <input
-                required
-                placeholder="WhatsApp"
-                value={form.telefone}
-                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-              />
+              <input required placeholder="Nome completo" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              <input required placeholder="WhatsApp" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
 
               <div className="grid-2">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Adultos"
-                  value={form.adultos}
-                  onChange={(e) => setForm({ ...form, adultos: e.target.value })}
-                />
-
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Crianças"
-                  value={form.criancas}
-                  onChange={(e) => setForm({ ...form, criancas: e.target.value })}
-                />
+                <input type="number" min="0" placeholder="Adultos" value={form.adultos} onChange={(e) => setForm({ ...form, adultos: e.target.value })} />
+                <input type="number" min="0" placeholder="Crianças" value={form.criancas} onChange={(e) => setForm({ ...form, criancas: e.target.value })} />
               </div>
 
-              <select
-                value={form.presenca}
-                onChange={(e) => setForm({ ...form, presenca: e.target.value })}
-              >
+              <select value={form.presenca} onChange={(e) => setForm({ ...form, presenca: e.target.value })}>
                 <option value="sim">Sim, vou comparecer</option>
                 <option value="nao">Não poderei comparecer</option>
               </select>
 
               <div className="grid-2">
-                <select
-                  value={form.fralda}
-                  onChange={(e) => setForm({ ...form, fralda: e.target.value })}
-                >
+                <select value={form.fralda} onChange={(e) => setForm({ ...form, fralda: e.target.value })}>
                   <option value="RN">Fralda RN</option>
                   <option value="P">Fralda P</option>
                   <option value="M">Fralda M</option>
@@ -229,29 +270,13 @@ export default function Home() {
                   <option value="XG">Fralda XG</option>
                 </select>
 
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Quantidade de pacotes"
-                  value={form.quantidadeFraldas}
-                  onChange={(e) =>
-                    setForm({ ...form, quantidadeFraldas: e.target.value })
-                  }
-                />
+                <input type="number" min="0" placeholder="Quantidade de pacotes" value={form.quantidadeFraldas} onChange={(e) => setForm({ ...form, quantidadeFraldas: e.target.value })} />
               </div>
 
-              <textarea
-                placeholder="Mensagem para o bebê/família"
-                value={form.mensagem}
-                onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
-              />
+              <textarea placeholder="Mensagem para o bebê/família" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
 
               <button disabled={loading || prazoEncerrado}>
-                {prazoEncerrado
-                  ? "Prazo encerrado"
-                  : loading
-                  ? "Enviando..."
-                  : "Confirmar presença"}
+                {prazoEncerrado ? "Prazo encerrado" : loading ? "Enviando..." : "Confirmar presença"}
               </button>
             </form>
           )}
@@ -261,13 +286,8 @@ export default function Home() {
           <h2>Presentes</h2>
           <div className="gift-icon">🎁</div>
 
-          <p>
-            Sua presença já nos deixa muito felizes!
-          </p>
-
-          <p>
-            Caso deseje nos presentear, sugerimos:
-          </p>
+          <p>Sua presença já nos deixa muito felizes!</p>
+          <p>Caso deseje nos presentear, sugerimos:</p>
 
           <div className="gift-highlight">
             <strong>👶 Fraldas + Mimo para o Bebê</strong>
@@ -280,9 +300,36 @@ export default function Home() {
 
         <footer>
           <strong>Esperamos você!</strong>
-          <span>Com carinho, família do bebê 💙💕</span>
+          <span>Com carinho, família do bebê 🤠💚💕</span>
+
+          <div className="whatsapp-footer">
+            <a
+              href="https://wa.me/5561998655774?text=Olá%20mamãe!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20revelação."
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              💚 WhatsApp da Mamãe
+            </a>
+
+            <a
+              href="https://wa.me/5561996774753?text=Olá%20papai!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20revelação."
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              🤠 WhatsApp do Papai
+            </a>
+          </div>
         </footer>
       </section>
     </main>
+  );
+}
+
+function TimeBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="time-box">
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </div>
   );
 }

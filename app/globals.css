@@ -25,6 +25,37 @@ body {
   overflow-x: hidden;
 }
 
+.music-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 99;
+  border: 0;
+  background: linear-gradient(135deg, #91b28d, #e99591);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 999px;
+  font-weight: 900;
+  box-shadow: 0 18px 45px rgba(80, 45, 25, .22);
+  cursor: pointer;
+}
+
+.music-player {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.music-player iframe {
+  width: 1px;
+  height: 1px;
+  border: 0;
+}
+
 .floating-invite {
   position: fixed;
   left: 8%;
@@ -134,16 +165,40 @@ h1 span {
   backdrop-filter: blur(18px);
 }
 
-.countdown span {
+.countdown > span {
   display: block;
   color: #91b28d;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
-.countdown strong {
-  font-size: clamp(24px, 4vw, 42px);
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.time-box {
+  background: linear-gradient(135deg, #fff0f6, #edf8ed);
+  border: 1px solid rgba(228,143,128,.28);
+  border-radius: 20px;
+  padding: 16px 8px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(80, 45, 25, .08);
+}
+
+.time-box strong {
+  display: block;
+  font-size: 34px;
   color: #e48f80;
+  line-height: 1;
+}
+
+.time-box small {
+  display: block;
+  margin-top: 8px;
+  color: #6d584c;
+  font-weight: 800;
 }
 
 .section-card {
@@ -185,15 +240,25 @@ h1 span {
   border: 2px dashed #91b28d;
 }
 
-.map-box a {
-  display: inline-block;
+.map-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.map-actions a {
+  display: inline-block;
   background: #91b28d;
   color: white;
   padding: 13px 22px;
   border-radius: 999px;
   font-weight: 800;
   text-decoration: none;
+}
+
+.map-actions .waze {
+  background: #33ccff;
 }
 
 .rsvp {
@@ -252,15 +317,12 @@ button:disabled {
 }
 
 .success-wrap {
-  position: relative;
   min-height: 280px;
   display: grid;
   place-items: center;
 }
 
 .success {
-  position: relative;
-  z-index: 3;
   padding: 34px;
   border-radius: 30px;
   background: linear-gradient(135deg, #e8f7e7, #fff0f5);
@@ -292,21 +354,6 @@ button:disabled {
   color: #5b3521;
   font-size: 18px;
 }
-
-.confetti span {
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  font-size: 34px;
-  animation: confetti 1.8s ease-out infinite;
-}
-
-.confetti span:nth-child(1) { left: 10%; animation-delay: 0s; }
-.confetti span:nth-child(2) { left: 25%; animation-delay: .2s; }
-.confetti span:nth-child(3) { left: 40%; animation-delay: .4s; }
-.confetti span:nth-child(4) { left: 60%; animation-delay: .1s; }
-.confetti span:nth-child(5) { left: 75%; animation-delay: .3s; }
-.confetti span:nth-child(6) { left: 90%; animation-delay: .5s; }
 
 .gift-icon {
   font-size: 70px;
@@ -345,6 +392,34 @@ footer {
 footer strong {
   font-size: 36px;
   color: #e48f80;
+}
+
+.whatsapp-footer {
+  margin-top: 24px;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.whatsapp-footer a {
+  background: #25d366;
+  color: white;
+  padding: 14px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 900;
+  box-shadow: 0 18px 40px rgba(37, 211, 102, .25);
+  transition: all .25s ease;
+}
+
+.whatsapp-footer a:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.05);
+}
+
+.whatsapp-footer a:last-child {
+  background: #91b28d;
 }
 
 .decor {
@@ -404,20 +479,6 @@ footer strong {
   }
 }
 
-@keyframes confetti {
-  0% {
-    opacity: 0;
-    transform: translateY(0) rotate(0deg) scale(.7);
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(190px) rotate(180deg) scale(1.2);
-  }
-}
-
 @media (max-width: 980px) {
   .floating-invite {
     position: relative;
@@ -454,5 +515,31 @@ footer strong {
 
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .countdown-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .music-player {
+    width: 1px;
+    height: 1px;
+  }
+
+  .music-btn {
+    right: 14px;
+    bottom: 14px;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .whatsapp-footer {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .whatsapp-footer a {
+    width: min(100%, 300px);
+    text-align: center;
   }
 }
