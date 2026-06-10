@@ -6,8 +6,8 @@ import {
   doc,
   increment,
   onSnapshot,
-  runTransaction,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
@@ -153,47 +153,43 @@ export default function Home() {
     setLoading(true);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
-        const resumoRef = doc(db, "resumos", "fraldas");
+      const batch = writeBatch(db);
 
-        const confirmacaoExiste = await transaction.get(confirmacaoRef);
+      const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
+      const resumoRef = doc(db, "resumos", "fraldas");
 
-        if (confirmacaoExiste.exists()) {
-          throw new Error("duplicado");
-        }
+      const quantidade =
+        form.presenca === "sim" ? Number(form.quantidadeFraldas) : 0;
 
-        const quantidade =
-          form.presenca === "sim" ? Number(form.quantidadeFraldas) : 0;
-
-        transaction.set(confirmacaoRef, {
-          ...form,
-          telefone: form.telefone,
-          telefoneLimpo,
-          adultos: Number(form.adultos),
-          criancas: Number(form.criancas),
-          quantidadeFraldas: quantidade,
-          createdAt: serverTimestamp(),
-        });
-
-        if (quantidade > 0) {
-          transaction.set(
-            resumoRef,
-            {
-              [form.fralda]: increment(quantidade),
-              total: increment(quantidade),
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        }
+      batch.set(confirmacaoRef, {
+        ...form,
+        telefone: form.telefone,
+        telefoneLimpo,
+        adultos: Number(form.adultos),
+        criancas: Number(form.criancas),
+        quantidadeFraldas: quantidade,
+        createdAt: serverTimestamp(),
       });
+
+      if (quantidade > 0) {
+        batch.set(
+          resumoRef,
+          {
+            [form.fralda]: increment(quantidade),
+            total: increment(quantidade),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      await batch.commit();
 
       setSuccess(true);
       fireConfetti();
     } catch (error) {
       console.error(error);
-      alert("Este WhatsApp já confirmou presença ou houve erro ao salvar.");
+      alert("Erro ao confirmar presença. Verifique o Firebase ou tente novamente.");
     } finally {
       setLoading(false);
     }
