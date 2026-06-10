@@ -256,7 +256,7 @@ export default function Home() {
           <div className="event-list">
             <p>📅 11/07/2026 • a partir das 17:00</p>
             <p>⏳ Confirmações até 20/06</p>
-            <p>🤠 Tema cowboy/cowgirl/p>
+            <p>🤠 Tema cowboy/cowgirl </p>
           </div>
 
           <div className="countdown">
