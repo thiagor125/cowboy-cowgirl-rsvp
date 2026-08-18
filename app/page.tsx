@@ -6,23 +6,21 @@ import {
   doc,
   increment,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
-  writeBatch,
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
-const EVENT_DATE = new Date("2026-07-11T17:00:00");
-const RSVP_LIMIT = new Date("2026-06-20T23:59:59");
+const EVENT_DATE = new Date("2026-10-24T12:00:00");
+const RSVP_LIMIT = new Date("2026-09-17T23:59:59");
 
-const ENDERECO = "Rua Exemplo, 123 - Cidade/UF";
-const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ENDERECO)}`;
-const WAZE_URL = `https://waze.com/ul?q=${encodeURIComponent(ENDERECO)}&navigate=yes`;
+const ENDERECO = "";
 
 const YOUTUBE_MUSIC_URL =
   "https://www.youtube.com/embed/eebLcRDgbBg?autoplay=1&loop=1&playlist=eebLcRDgbBg";
 
-const DIAPER_SIZES = ["RN", "P", "M", "G", "XG"] as const;
+const DIAPER_SIZES = ["M", "G"] as const;
 
 type DiaperSize = typeof DIAPER_SIZES[number];
 
@@ -39,11 +37,8 @@ export default function Home() {
   });
 
   const [fraldasStats, setFraldasStats] = useState<FraldasStats>({
-    RN: 0,
-    P: 0,
     M: 0,
     G: 0,
-    XG: 0,
     total: 0,
   });
 
@@ -91,11 +86,8 @@ export default function Home() {
       const data = snapshot.data();
 
       setFraldasStats({
-        RN: Number(data?.RN || 0),
-        P: Number(data?.P || 0),
         M: Number(data?.M || 0),
         G: Number(data?.G || 0),
-        XG: Number(data?.XG || 0),
         total: Number(data?.total || 0),
       });
     });
@@ -144,46 +136,66 @@ export default function Home() {
     }
 
     const telefoneLimpo = form.telefone.replace(/\D/g, "");
+    const adultos = Number(form.adultos);
+    const criancas = Number(form.criancas);
+    const quantidade =
+      form.presenca === "sim" ? Number(form.quantidadeFraldas) : 0;
 
     if (telefoneLimpo.length < 10) {
       alert("Digite um WhatsApp válido.");
       return;
     }
 
+    if (form.presenca === "sim" && adultos + criancas < 1) {
+      alert("Informe pelo menos uma pessoa para confirmar a presença.");
+      return;
+    }
+
+    if (form.presenca === "sim" && quantidade < 1) {
+      alert("Informe pelo menos um pacote de fraldas.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const batch = writeBatch(db);
-
       const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
       const resumoRef = doc(db, "resumos", "fraldas");
 
-      const quantidade =
-        form.presenca === "sim" ? Number(form.quantidadeFraldas) : 0;
+      await runTransaction(db, async (transaction) => {
+        const confirmacaoAtual = await transaction.get(confirmacaoRef);
+        const dadosAtuais = confirmacaoAtual.data();
+        const quantidadeAnterior = Number(dadosAtuais?.quantidadeFraldas || 0);
+        const tamanhoAnterior = dadosAtuais?.fralda as DiaperSize | undefined;
 
-      batch.set(confirmacaoRef, {
-        ...form,
-        telefone: form.telefone,
-        telefoneLimpo,
-        adultos: Number(form.adultos),
-        criancas: Number(form.criancas),
-        quantidadeFraldas: quantidade,
-        createdAt: serverTimestamp(),
+        transaction.set(confirmacaoRef, {
+          ...form,
+          telefone: form.telefone,
+          telefoneLimpo,
+          adultos,
+          criancas,
+          quantidadeFraldas: quantidade,
+          createdAt: dadosAtuais?.createdAt || serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        const ajustes: Record<string, ReturnType<typeof increment> | ReturnType<typeof serverTimestamp>> = {
+          total: increment(quantidade - quantidadeAnterior),
+          updatedAt: serverTimestamp(),
+        };
+
+        if (tamanhoAnterior && quantidadeAnterior > 0) {
+          ajustes[tamanhoAnterior] = increment(-quantidadeAnterior);
+        }
+
+        if (quantidade > 0) {
+          const ajusteAtual =
+            tamanhoAnterior === form.fralda ? quantidade - quantidadeAnterior : quantidade;
+          ajustes[form.fralda] = increment(ajusteAtual);
+        }
+
+        transaction.set(resumoRef, ajustes, { merge: true });
       });
-
-      if (quantidade > 0) {
-        batch.set(
-          resumoRef,
-          {
-            [form.fralda]: increment(quantidade),
-            total: increment(quantidade),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      }
-
-      await batch.commit();
 
       setSuccess(true);
       fireConfetti();
@@ -212,51 +224,39 @@ export default function Home() {
         </div>
       )}
 
-      <div className="decor decor1">?</div>
-      <div className="decor decor2">?</div>
-      <div className="decor decor3">?</div>
-
       <aside className="floating-invite">
-        <div className="name-balloon balloon-clarice">
-          <span>💕 Clarice</span>
-        </div>
-
         <Image
-          src="/convite1.jpg"
-          alt="Convite Cowboy ou Cowgirl"
+          src="/convite-bernardo-safari.png"
+          alt="Convite para o chá de fraldas do Bernardo"
           width={620}
           height={900}
           priority
           className="invite-img"
         />
-
-        <div className="name-balloon balloon-matteo">
-          <span>💚 Matteo</span>
-        </div>
       </aside>
 
       <section className="content">
         <section className="hero-section">
-          <p className="eyebrow">CHÁ REVELAÇÃO + CHÁ DE FRALDA</p>
+          <p className="eyebrow">NOSSO PEQUENO EXPLORADOR ESTÁ CHEGANDO</p>
 
           <h1>
-            Cowboy <span>ou Cowgirl?</span>
+            Chá de Fraldas <span>do Bernardo</span>
           </h1>
 
           <p className="subtitle">
-            Confirme sua presença e venha descobrir com a gente se é um
-            peãozinho ou uma princesinha.
+            Confirme sua presença e venha celebrar com a gente a chegada do
+            nosso pequeno explorador.
           </p>
 
           <div className="actions">
-            <a href="#confirmar" className="btn pink">Eu vou!</a>
+            <a href="#confirmar" className="btn primary">Eu vou!</a>
             <a href="#local" className="btn green">Ver local</a>
           </div>
 
           <div className="event-list">
-            <p>📅 11/07/2026 • a partir das 17:00</p>
-            <p>⏳ Confirmações até 20/06</p>
-            <p>🤠 Tema cowboy/cowgirl </p>
+            <p>📅 24/10/2026 • a partir das 12h</p>
+            <p>⏳ Confirmações até 17/09</p>
+            <p>🦁 Tema safari</p>
           </div>
 
           <div className="countdown">
@@ -273,38 +273,29 @@ export default function Home() {
 
         <section id="local" className="section-card">
           <h2>Localização</h2>
-          <p>Coloque aqui o endereço completo do evento para seus convidados.</p>
+          <p>O endereço será informado em breve.</p>
 
           <div className="map-box">
-            <p>📍 {ENDERECO}</p>
-
-            <div className="map-actions">
-              <a href={GOOGLE_MAPS_URL} target="_blank" rel="noopener noreferrer">
-                Abrir no Google Maps
-              </a>
-              <a href={WAZE_URL} target="_blank" rel="noopener noreferrer" className="waze">
-                Abrir no Waze
-              </a>
-            </div>
+            <p>📍 {ENDERECO || "Localização em breve"}</p>
           </div>
         </section>
 
         <section className="section-card soft">
           <h2>Mensagem especial</h2>
           <p>
-            Oi pessoal! A mamãe e o papai vão fazer um chá revelação para
-            comemorar a chegada do nosso bebê. Ficaremos muito felizes com sua
-            presença!
+            Oi, pessoal! A mamãe e o papai vão fazer o chá de fraldas do
+            Bernardo para celebrar a chegada do nosso pequeno explorador.
+            Ficaremos muito felizes com sua presença!
           </p>
           <p>
-            Quando eu chegar, meus dias serão cheios de muito amor, carinho e
-            muita fralda para gastar. 😍
+            Quando eu chegar, meus dias serão cheios de amor, carinho e muitas
+            fraldas para usar. 😍
           </p>
         </section>
 
         <section id="confirmar" className="section-card rsvp">
           <h2>Confirme sua presença</h2>
-          <p className="center">Prazo para confirmação: <strong>20/06</strong></p>
+          <p className="center">Prazo para confirmação: <strong>17/09</strong></p>
 
           <DiaperSuggestion stats={fraldasStats} />
 
@@ -315,9 +306,9 @@ export default function Home() {
                 <h3>Presença confirmada!</h3>
                 <p>
                   Obrigado por confirmar. Estamos muito felizes em compartilhar
-                  esse momento especial com você.
+                  esse momento especial do Bernardo com você.
                 </p>
-                <strong>Esperamos você no dia 11 de Julho às 17:00 🤠💕</strong>
+                <strong>Esperamos você no dia 24 de outubro às 12h 🦁💚</strong>
               </div>
             </div>
           ) : (
@@ -337,11 +328,8 @@ export default function Home() {
 
               <div className="grid-2">
                 <select value={form.fralda} onChange={(e) => setForm({ ...form, fralda: e.target.value })}>
-                  <option value="RN">Fralda RN</option>
-                  <option value="P">Fralda P</option>
                   <option value="M">Fralda M</option>
                   <option value="G">Fralda G</option>
-                  <option value="XG">Fralda XG</option>
                 </select>
 
                 <input type="number" min="0" placeholder="Quantidade de pacotes" value={form.quantidadeFraldas} onChange={(e) => setForm({ ...form, quantidadeFraldas: e.target.value })} />
@@ -361,24 +349,24 @@ export default function Home() {
           <div className="gift-icon">🎁</div>
 
           <p>Sua presença já nos deixa muito felizes!</p>
-          <p>Caso deseje nos presentear, sugerimos:</p>
+          <p>Para quem quiser contribuir com o enxoval:</p>
 
           <div className="gift-highlight">
-            <strong>👶 Fraldas + Mimo para o Bebê</strong>
+            <strong>👶 Fraldas M ou G para o Bernardo</strong>
             <span>
-              Levar fraldas no tamanho escolhido no formulário + um mimo
-              especial para o bebê.
+              Se desejar, você também pode levar um mimo — é totalmente
+              opcional.
             </span>
           </div>
         </section>
 
         <footer>
           <strong>Esperamos você!</strong>
-          <span>Com carinho, família do bebê 🤠💚💕</span>
+          <span>Com carinho, família do Bernardo 🦁🌿</span>
 
           <div className="whatsapp-footer">
             <a
-              href="https://wa.me/5561998655774?text=Olá%20mamãe!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20revelação."
+              href="https://wa.me/5561998655774?text=Olá%20mamãe!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Bernardo."
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -386,11 +374,11 @@ export default function Home() {
             </a>
 
             <a
-              href="https://wa.me/5561996774753?text=Olá%20papai!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20revelação."
+              href="https://wa.me/5561996774753?text=Olá%20papai!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Bernardo."
               target="_blank"
               rel="noopener noreferrer"
             >
-              🤠 WhatsApp do Papai
+              🦁 WhatsApp do Papai
             </a>
           </div>
         </footer>
@@ -409,12 +397,12 @@ function TimeBox({ label, value }: { label: string; value: string }) {
 }
 
 function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
-  const max = Math.max(stats.RN, stats.P, stats.M, stats.G, stats.XG, 1);
+  const max = Math.max(stats.M, stats.G, 1);
 
   return (
     <div className="diaper-panel">
       <div className="diaper-title">
-        <span>🤠</span>
+        <span>🍼</span>
         <div>
           <h3>Sugestão de fraldas</h3>
           <p>Veja os tamanhos já escolhidos e escolha o que achar melhor.</p>
@@ -428,7 +416,7 @@ function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
 
           return (
             <div className="diaper-row" key={size}>
-              <div className={`diaper-size ${index % 2 === 0 ? "green-size" : "pink-size"}`}>
+              <div className={`diaper-size ${index % 2 === 0 ? "green-size" : "brown-size"}`}>
                 {size}
               </div>
 
@@ -457,7 +445,7 @@ function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
 
       <div className="diaper-note">
         <span>🍼 Cada ícone representa a quantidade relativa de pacotes já escolhidos.</span>
-        <strong>Leve o tamanho que quiser! Toda ajuda é muito bem-vinda 🤠💕</strong>
+        <strong>Escolha entre M ou G. Toda ajuda é muito bem-vinda 🦁🌿</strong>
       </div>
 
       <p className="diaper-live">🌿 Atualizado em tempo real conforme as confirmações.</p>
