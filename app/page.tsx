@@ -6,8 +6,8 @@ import {
   doc,
   increment,
   onSnapshot,
-  runTransaction,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
@@ -159,43 +159,33 @@ export default function Home() {
     setLoading(true);
 
     try {
+      const batch = writeBatch(db);
       const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
       const resumoRef = doc(db, "resumos", "fraldas");
 
-      await runTransaction(db, async (transaction) => {
-        const confirmacaoAtual = await transaction.get(confirmacaoRef);
-        const dadosAtuais = confirmacaoAtual.data();
-        const quantidadeAnterior = Number(dadosAtuais?.quantidadeFraldas || 0);
-        const tamanhoAnterior = dadosAtuais?.fralda as DiaperSize | undefined;
-
-        transaction.set(confirmacaoRef, {
-          ...form,
-          telefone: form.telefone,
-          telefoneLimpo,
-          adultos,
-          criancas,
-          quantidadeFraldas: quantidade,
-          createdAt: dadosAtuais?.createdAt || serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-
-        const ajustes: Record<string, ReturnType<typeof increment> | ReturnType<typeof serverTimestamp>> = {
-          total: increment(quantidade - quantidadeAnterior),
-          updatedAt: serverTimestamp(),
-        };
-
-        if (tamanhoAnterior && quantidadeAnterior > 0) {
-          ajustes[tamanhoAnterior] = increment(-quantidadeAnterior);
-        }
-
-        if (quantidade > 0) {
-          const ajusteAtual =
-            tamanhoAnterior === form.fralda ? quantidade - quantidadeAnterior : quantidade;
-          ajustes[form.fralda] = increment(ajusteAtual);
-        }
-
-        transaction.set(resumoRef, ajustes, { merge: true });
+      batch.set(confirmacaoRef, {
+        ...form,
+        telefone: form.telefone,
+        telefoneLimpo,
+        adultos,
+        criancas,
+        quantidadeFraldas: quantidade,
+        updatedAt: serverTimestamp(),
       });
+
+      if (quantidade > 0) {
+        batch.set(
+          resumoRef,
+          {
+            [form.fralda]: increment(quantidade),
+            total: increment(quantidade),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      await batch.commit();
 
       setSuccess(true);
       fireConfetti();
