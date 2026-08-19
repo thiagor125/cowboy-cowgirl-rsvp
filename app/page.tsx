@@ -307,8 +307,29 @@ export default function Home() {
               <input required placeholder="WhatsApp" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
 
               <div className="grid-2">
-                <input type="number" min="0" placeholder="Adultos" value={form.adultos} onChange={(e) => setForm({ ...form, adultos: e.target.value })} />
-                <input type="number" min="0" placeholder="Crianças" value={form.criancas} onChange={(e) => setForm({ ...form, criancas: e.target.value })} />
+                <label className="form-field">
+                  <span>Adultos</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.adultos}
+                    onChange={(e) =>
+                      setForm({ ...form, adultos: e.target.value })
+                    }
+                  />
+                </label>
+
+                <label className="form-field">
+                  <span>Crianças</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.criancas}
+                    onChange={(e) =>
+                      setForm({ ...form, criancas: e.target.value })
+                    }
+                  />
+                </label>
               </div>
 
               <select value={form.presenca} onChange={(e) => setForm({ ...form, presenca: e.target.value })}>
