@@ -3,10 +3,14 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
+  addDoc,
   collection,
   doc,
   increment,
+  limit,
   onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
   updateDoc,
   writeBatch,
@@ -107,37 +111,35 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const confirmacoesRef = collection(db, "confirmacoes");
+    const recadinhosQuery = query(
+      collection(db, "recadinhos"),
+      orderBy("createdAt", "desc"),
+      limit(24)
+    );
 
     const unsubscribe = onSnapshot(
-      confirmacoesRef,
+      recadinhosQuery,
       (snapshot) => {
         setRecadinhos(
           snapshot.docs
             .map((item) => {
               const data = item.data();
-              const updatedAt = data.updatedAt?.toDate?.();
               const createdAt = data.createdAt?.toDate?.();
-              const dataRecadinho =
-                updatedAt instanceof Date
-                  ? updatedAt
-                  : createdAt instanceof Date
-                  ? createdAt
-                  : null;
 
               return {
                 id: item.id,
                 nome: String(data.nome || "Convidado"),
                 mensagem: String(data.mensagem || "").trim(),
                 likes: Number(data.likes || 0),
-                updatedAtMs: dataRecadinho ? dataRecadinho.getTime() : 0,
+                updatedAtMs:
+                  createdAt instanceof Date ? createdAt.getTime() : 0,
               };
             })
             .filter((item) => item.mensagem.length > 0)
         );
       },
       (error) => {
-        console.error("Erro ao carregar mensagens das confirmações:", error);
+        console.error("Erro ao carregar recadinhos:", error);
       }
     );
 
@@ -212,19 +214,15 @@ export default function Home() {
       const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
       const resumoRef = doc(db, "resumos", "fraldas");
 
-      batch.set(
-        confirmacaoRef,
-        {
-          ...form,
-          telefone: form.telefone,
-          telefoneLimpo,
-          adultos,
-          criancas,
-          quantidadeFraldas: quantidade,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      batch.set(confirmacaoRef, {
+        ...form,
+        telefone: form.telefone,
+        telefoneLimpo,
+        adultos,
+        criancas,
+        quantidadeFraldas: quantidade,
+        updatedAt: serverTimestamp(),
+      });
 
       if (quantidade > 0) {
         batch.set(
@@ -239,6 +237,24 @@ export default function Home() {
       }
 
       await batch.commit();
+
+      const mensagemLimpa = form.mensagem.trim();
+
+      if (mensagemLimpa) {
+        try {
+          await addDoc(collection(db, "recadinhos"), {
+            nome: form.nome.trim(),
+            mensagem: mensagemLimpa,
+            likes: 0,
+            createdAt: serverTimestamp(),
+          });
+        } catch (recadinhoError) {
+          console.error(
+            "Presença confirmada, mas o recadinho não foi publicado:",
+            recadinhoError
+          );
+        }
+      }
 
       setSuccess(true);
       fireConfetti();
@@ -490,7 +506,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
     setCurtindo(id);
 
     try {
-      await updateDoc(doc(db, "confirmacoes", id), {
+      await updateDoc(doc(db, "recadinhos", id), {
         likes: increment(1),
       });
 
