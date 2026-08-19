@@ -344,8 +344,7 @@ export default function Home() {
           <div className="gift-highlight">
             <strong>👶 Fraldas M ou G para o Bernardo</strong>
             <span>
-              Se desejar, você também pode levar um mimo — é totalmente
-              opcional.
+              + um mimo para o nosso pequeno explorador 💚
             </span>
           </div>
         </section>
