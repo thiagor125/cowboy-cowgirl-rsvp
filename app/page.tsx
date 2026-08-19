@@ -3,10 +3,15 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
+  collection,
   doc,
   increment,
+  limit,
   onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
+  updateDoc,
   writeBatch,
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
@@ -28,6 +33,14 @@ type FraldasStats = Record<DiaperSize, number> & {
   total: number;
 };
 
+type Recadinho = {
+  id: string;
+  nome: string;
+  mensagem: string;
+  likes: number;
+  updatedAtMs: number;
+};
+
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState({
     dias: "0",
@@ -45,6 +58,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
+  const [recadinhos, setRecadinhos] = useState<Recadinho[]>([]);
 
   const [form, setForm] = useState({
     nome: "",
@@ -91,6 +105,42 @@ export default function Home() {
         total: Number(data?.total || 0),
       });
     });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const recadinhosQuery = query(
+      collection(db, "recadinhos"),
+      orderBy("updatedAt", "desc"),
+      limit(24)
+    );
+
+    const unsubscribe = onSnapshot(
+      recadinhosQuery,
+      (snapshot) => {
+        setRecadinhos(
+          snapshot.docs
+            .map((item) => {
+              const data = item.data();
+              const updatedAt = data.updatedAt?.toDate?.();
+
+              return {
+                id: item.id,
+                nome: String(data.nome || "Convidado"),
+                mensagem: String(data.mensagem || "").trim(),
+                likes: Number(data.likes || 0),
+                updatedAtMs:
+                  updatedAt instanceof Date ? updatedAt.getTime() : 0,
+              };
+            })
+            .filter((item) => item.mensagem.length > 0)
+        );
+      },
+      (error) => {
+        console.error("Erro ao carregar recadinhos:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -162,6 +212,7 @@ export default function Home() {
       const batch = writeBatch(db);
       const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
       const resumoRef = doc(db, "resumos", "fraldas");
+      const recadinhoRef = doc(db, "recadinhos", telefoneLimpo);
 
       batch.set(confirmacaoRef, {
         ...form,
@@ -183,6 +234,22 @@ export default function Home() {
           },
           { merge: true }
         );
+      }
+
+      const mensagemLimpa = form.mensagem.trim();
+
+      if (mensagemLimpa) {
+        batch.set(
+          recadinhoRef,
+          {
+            nome: form.nome.trim(),
+            mensagem: mensagemLimpa,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } else {
+        batch.delete(recadinhoRef);
       }
 
       await batch.commit();
@@ -370,6 +437,8 @@ export default function Home() {
           </div>
         </section>
 
+        <RecadinhosSection recadinhos={recadinhos} />
+
         <footer>
           <strong>Esperamos você!</strong>
           <span>Com carinho, família do Bernardo 🦁🌿</span>
@@ -394,6 +463,206 @@ export default function Home() {
         </footer>
       </section>
     </main>
+  );
+}
+
+function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
+  const [ordem, setOrdem] = useState<"recentes" | "queridos">("recentes");
+  const [curtidos, setCurtidos] = useState<string[]>([]);
+  const [curtindo, setCurtindo] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const salvos = JSON.parse(
+        window.localStorage.getItem("bernardo-recadinhos-curtidos") || "[]"
+      );
+
+      if (Array.isArray(salvos)) {
+        setCurtidos(salvos.map(String));
+      }
+    } catch {
+      setCurtidos([]);
+    }
+  }, []);
+
+  const ordenados = [...recadinhos].sort((a, b) => {
+    if (ordem === "queridos") {
+      return b.likes - a.likes || b.updatedAtMs - a.updatedAtMs;
+    }
+
+    return b.updatedAtMs - a.updatedAtMs;
+  });
+
+  const destaque = ordenados[0];
+  const demais = ordenados.slice(1);
+
+  async function curtir(id: string) {
+    if (curtidos.includes(id) || curtindo === id) {
+      return;
+    }
+
+    setCurtindo(id);
+
+    try {
+      await updateDoc(doc(db, "recadinhos", id), {
+        likes: increment(1),
+      });
+
+      const novosCurtidos = [...curtidos, id];
+      setCurtidos(novosCurtidos);
+      window.localStorage.setItem(
+        "bernardo-recadinhos-curtidos",
+        JSON.stringify(novosCurtidos)
+      );
+    } catch (error) {
+      console.error("Erro ao curtir recadinho:", error);
+      alert("Não foi possível enviar o coração agora. Tente novamente.");
+    } finally {
+      setCurtindo(null);
+    }
+  }
+
+  function dataRecadinho(timestamp: number) {
+    if (!timestamp) {
+      return "Recadinho especial";
+    }
+
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "short",
+    })
+      .format(new Date(timestamp))
+      .replace(".", "");
+  }
+
+  function iniciais(nome: string) {
+    return nome
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((parte) => parte[0]?.toUpperCase())
+      .join("");
+  }
+
+  return (
+    <section id="recadinhos" className="section-card recadinhos-section">
+      <div className="recadinhos-heading">
+        <div>
+          <span className="recadinhos-kicker">💚 CARINHO QUE FICA GUARDADO</span>
+          <h2>Recadinhos para o Bernardo</h2>
+          <p>
+            Mensagens deixadas pela família e pelos amigos para o nosso pequeno
+            explorador.
+          </p>
+        </div>
+
+        <div className="recadinhos-tabs" aria-label="Ordenar recadinhos">
+          <button
+            type="button"
+            className={ordem === "recentes" ? "active" : ""}
+            onClick={() => setOrdem("recentes")}
+          >
+            Mais recentes
+          </button>
+          <button
+            type="button"
+            className={ordem === "queridos" ? "active" : ""}
+            onClick={() => setOrdem("queridos")}
+          >
+            ❤️ Mais queridos
+          </button>
+        </div>
+      </div>
+
+      {recadinhos.length === 0 ? (
+        <div className="recadinhos-empty">
+          <span>🦁💌</span>
+          <strong>O primeiro recadinho pode ser o seu!</strong>
+          <p>
+            Ao confirmar presença, escreva uma mensagem para o Bernardo. Ela
+            aparecerá aqui com muito carinho.
+          </p>
+          <a href="#confirmar">Deixar um recadinho</a>
+        </div>
+      ) : (
+        <>
+          {destaque && (
+            <article className="recadinho-card recadinho-destaque">
+              <div className="recadinho-top">
+                <div className="recadinho-avatar">
+                  {iniciais(destaque.nome) || "💚"}
+                </div>
+                <div>
+                  <strong>{destaque.nome}</strong>
+                  <span>⭐ Recadinho em destaque</span>
+                </div>
+                <time>{dataRecadinho(destaque.updatedAtMs)}</time>
+              </div>
+
+              <blockquote>“{destaque.mensagem}”</blockquote>
+
+              <div className="recadinho-bottom">
+                <span>🌿 🦁 🌿</span>
+                <button
+                  type="button"
+                  className={curtidos.includes(destaque.id) ? "liked" : ""}
+                  onClick={() => curtir(destaque.id)}
+                  disabled={curtindo === destaque.id}
+                  aria-label={`Deixar um coração no recadinho de ${destaque.nome}`}
+                >
+                  {curtidos.includes(destaque.id) ? "♥" : "♡"}{" "}
+                  {destaque.likes}
+                </button>
+              </div>
+            </article>
+          )}
+
+          {demais.length > 0 && (
+            <div className="recadinhos-grid">
+              {demais.map((recadinho) => (
+                <article className="recadinho-card" key={recadinho.id}>
+                  <div className="recadinho-top">
+                    <div className="recadinho-avatar">
+                      {iniciais(recadinho.nome) || "💚"}
+                    </div>
+                    <div>
+                      <strong>{recadinho.nome}</strong>
+                      <span>Recadinho com carinho</span>
+                    </div>
+                    <time>{dataRecadinho(recadinho.updatedAtMs)}</time>
+                  </div>
+
+                  <blockquote>“{recadinho.mensagem}”</blockquote>
+
+                  <div className="recadinho-bottom">
+                    <span>🌿 ♥ 🌿</span>
+                    <button
+                      type="button"
+                      className={curtidos.includes(recadinho.id) ? "liked" : ""}
+                      onClick={() => curtir(recadinho.id)}
+                      disabled={curtindo === recadinho.id}
+                      aria-label={`Deixar um coração no recadinho de ${recadinho.nome}`}
+                    >
+                      {curtidos.includes(recadinho.id) ? "♥" : "♡"}{" "}
+                      {recadinho.likes}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="recadinhos-cta">
+        <div className="recadinhos-cta-icon">💌</div>
+        <div>
+          <strong>Deixe também o seu recadinho para o Bernardo!</strong>
+          <span>Seu carinho ficará guardado por aqui.</span>
+        </div>
+        <a href="#confirmar">Escrever mensagem</a>
+      </div>
+    </section>
   );
 }
 
