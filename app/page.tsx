@@ -6,10 +6,7 @@ import {
   collection,
   doc,
   increment,
-  limit,
   onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
   updateDoc,
   writeBatch,
@@ -110,35 +107,37 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const recadinhosQuery = query(
-      collection(db, "recadinhos"),
-      orderBy("updatedAt", "desc"),
-      limit(24)
-    );
+    const confirmacoesRef = collection(db, "confirmacoes");
 
     const unsubscribe = onSnapshot(
-      recadinhosQuery,
+      confirmacoesRef,
       (snapshot) => {
         setRecadinhos(
           snapshot.docs
             .map((item) => {
               const data = item.data();
               const updatedAt = data.updatedAt?.toDate?.();
+              const createdAt = data.createdAt?.toDate?.();
+              const dataRecadinho =
+                updatedAt instanceof Date
+                  ? updatedAt
+                  : createdAt instanceof Date
+                  ? createdAt
+                  : null;
 
               return {
                 id: item.id,
                 nome: String(data.nome || "Convidado"),
                 mensagem: String(data.mensagem || "").trim(),
                 likes: Number(data.likes || 0),
-                updatedAtMs:
-                  updatedAt instanceof Date ? updatedAt.getTime() : 0,
+                updatedAtMs: dataRecadinho ? dataRecadinho.getTime() : 0,
               };
             })
             .filter((item) => item.mensagem.length > 0)
         );
       },
       (error) => {
-        console.error("Erro ao carregar recadinhos:", error);
+        console.error("Erro ao carregar mensagens das confirmações:", error);
       }
     );
 
@@ -212,17 +211,20 @@ export default function Home() {
       const batch = writeBatch(db);
       const confirmacaoRef = doc(db, "confirmacoes", telefoneLimpo);
       const resumoRef = doc(db, "resumos", "fraldas");
-      const recadinhoRef = doc(db, "recadinhos", telefoneLimpo);
 
-      batch.set(confirmacaoRef, {
-        ...form,
-        telefone: form.telefone,
-        telefoneLimpo,
-        adultos,
-        criancas,
-        quantidadeFraldas: quantidade,
-        updatedAt: serverTimestamp(),
-      });
+      batch.set(
+        confirmacaoRef,
+        {
+          ...form,
+          telefone: form.telefone,
+          telefoneLimpo,
+          adultos,
+          criancas,
+          quantidadeFraldas: quantidade,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       if (quantidade > 0) {
         batch.set(
@@ -234,22 +236,6 @@ export default function Home() {
           },
           { merge: true }
         );
-      }
-
-      const mensagemLimpa = form.mensagem.trim();
-
-      if (mensagemLimpa) {
-        batch.set(
-          recadinhoRef,
-          {
-            nome: form.nome.trim(),
-            mensagem: mensagemLimpa,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      } else {
-        batch.delete(recadinhoRef);
       }
 
       await batch.commit();
@@ -504,7 +490,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
     setCurtindo(id);
 
     try {
-      await updateDoc(doc(db, "recadinhos", id), {
+      await updateDoc(doc(db, "confirmacoes", id), {
         likes: increment(1),
       });
 
@@ -577,10 +563,10 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
       {recadinhos.length === 0 ? (
         <div className="recadinhos-empty">
           <span>🦁💌</span>
-          <strong>O primeiro recadinho pode ser o seu!</strong>
+          <strong>Ainda não há recadinhos para mostrar.</strong>
           <p>
-            Ao confirmar presença, escreva uma mensagem para o Bernardo. Ela
-            aparecerá aqui com muito carinho.
+            As mensagens preenchidas no formulário de confirmação aparecerão
+            aqui automaticamente.
           </p>
           <a href="#confirmar">Deixar um recadinho</a>
         </div>
@@ -653,15 +639,6 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
           )}
         </>
       )}
-
-      <div className="recadinhos-cta">
-        <div className="recadinhos-cta-icon">💌</div>
-        <div>
-          <strong>Deixe também o seu recadinho para o Bernardo!</strong>
-          <span>Seu carinho ficará guardado por aqui.</span>
-        </div>
-        <a href="#confirmar">Escrever mensagem</a>
-      </div>
     </section>
   );
 }
