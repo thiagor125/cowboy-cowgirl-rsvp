@@ -18,10 +18,14 @@ import {
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
-const EVENT_DATE = new Date("2026-10-24T12:00:00");
+const EVENT_DATE = new Date("2026-10-25T12:00:00");
 const RSVP_LIMIT = new Date("2026-09-17T23:59:59");
 
-const ENDERECO = "";
+const ENDERECO = "Salão de Festas Débora — QSC 19 Gleba L., Taguatinga - DF";
+const GOOGLE_MAPS_URL =
+  "https://www.google.com/maps/place/Sal%C3%A3o+de+festas+D%C3%A9bora/@-15.8546872,-48.0554569,959m/data=!3m2!1e3!4b1!4m6!3m5!1s0x935a336072fb292b:0xe2ad8d5f7aa58ac3!8m2!3d-15.8546872!4d-48.0554569!16s%2Fg%2F11qn0kwcd7?hl=pt-br&entry=ttu&g_ep=EgoyMDI2MDkwNi4wIKXMDSoASAFQAw%3D%3D";
+const WAZE_URL =
+  "https://www.waze.com/live-map/directions/salao-de-festas-debora-qsc-19-gleba-l.-taguatinga?to=place.w.204408425.2044346399.15980226";
 
 const YOUTUBE_MUSIC_URL =
   "https://www.youtube.com/embed/eebLcRDgbBg?autoplay=1&loop=1&playlist=eebLcRDgbBg";
@@ -75,7 +79,7 @@ export default function Home() {
   const prazoEncerrado = new Date() > RSVP_LIMIT;
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const updateCountdown = () => {
       const diff = EVENT_DATE.getTime() - new Date().getTime();
 
       if (diff <= 0) {
@@ -89,7 +93,10 @@ export default function Home() {
         minutos: String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0"),
         segundos: String(Math.floor((diff / 1000) % 60)).padStart(2, "0"),
       });
-    }, 1000);
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(timer);
   }, []);
@@ -285,7 +292,7 @@ export default function Home() {
 
       <aside className="floating-invite">
         <Image
-          src="/convite-bernardo-safari.png"
+          src="/convite-bernardo-25-outubro.png"
           alt="Convite para o chá de fraldas do Bernardo"
           width={620}
           height={900}
@@ -313,7 +320,7 @@ export default function Home() {
           </div>
 
           <div className="event-list">
-            <p>📅 24/10/2026 • a partir das 12h</p>
+            <p>📅 25/10/2026 • a partir das 12h</p>
             <p>⏳ Confirmações até 17/09</p>
             <p>🦁 Tema safari</p>
           </div>
@@ -330,12 +337,24 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="local" className="section-card">
+        <section id="local" className="section-card location-card">
+          <span className="section-kicker">🗺️ COMO CHEGAR</span>
           <h2>Localização</h2>
-          <p>O endereço será informado em breve.</p>
+          <p>Toque no aplicativo que você prefere e abra a rota até o salão.</p>
 
           <div className="map-box">
-            <p>📍 {ENDERECO || "Localização em breve"}</p>
+            <div className="location-address">
+              <span aria-hidden="true">📍</span>
+              <address>{ENDERECO}</address>
+            </div>
+            <div className="map-actions">
+              <a href={GOOGLE_MAPS_URL} target="_blank" rel="noreferrer" className="btn primary">
+                🗺️ Google Maps
+              </a>
+              <a href={WAZE_URL} target="_blank" rel="noreferrer" className="btn waze">
+                🚙 Waze
+              </a>
+            </div>
           </div>
         </section>
 
@@ -367,13 +386,19 @@ export default function Home() {
                   Obrigado por confirmar. Estamos muito felizes em compartilhar
                   esse momento especial do Bernardo com você.
                 </p>
-                <strong>Esperamos você no dia 24 de outubro às 12h 🦁💚</strong>
+                <strong>Esperamos você no dia 25 de outubro às 12h 🦁💚</strong>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <input required placeholder="Nome completo" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-              <input required placeholder="WhatsApp" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              <label className="form-field">
+                <span>Nome completo</span>
+                <input required autoComplete="name" placeholder="Seu nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              </label>
+              <label className="form-field">
+                <span>WhatsApp</span>
+                <input required type="tel" inputMode="tel" autoComplete="tel" placeholder="(61) 99999-9999" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              </label>
 
               <div className="grid-2">
                 <label className="form-field">
@@ -401,21 +426,33 @@ export default function Home() {
                 </label>
               </div>
 
-              <select value={form.presenca} onChange={(e) => setForm({ ...form, presenca: e.target.value })}>
-                <option value="sim">Sim, vou comparecer</option>
-                <option value="nao">Não poderei comparecer</option>
-              </select>
-
-              <div className="grid-2">
-                <select value={form.fralda} onChange={(e) => setForm({ ...form, fralda: e.target.value })}>
-                  <option value="M">Fralda M</option>
-                  <option value="G">Fralda G</option>
+              <label className="form-field">
+                <span>Você poderá comparecer?</span>
+                <select value={form.presenca} onChange={(e) => setForm({ ...form, presenca: e.target.value })}>
+                  <option value="sim">Sim, vou comparecer</option>
+                  <option value="nao">Não poderei comparecer</option>
                 </select>
+              </label>
 
-                <input type="number" min="0" placeholder="Quantidade de pacotes" value={form.quantidadeFraldas} onChange={(e) => setForm({ ...form, quantidadeFraldas: e.target.value })} />
-              </div>
+              {form.presenca === "sim" && <div className="grid-2">
+                <label className="form-field">
+                  <span>Tamanho da fralda</span>
+                  <select value={form.fralda} onChange={(e) => setForm({ ...form, fralda: e.target.value })}>
+                    <option value="M">Fralda M</option>
+                    <option value="G">Fralda G</option>
+                  </select>
+                </label>
 
-              <textarea placeholder="Mensagem para o bebê/família" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
+                <label className="form-field">
+                  <span>Quantidade de pacotes</span>
+                  <input type="number" min="1" value={form.quantidadeFraldas} onChange={(e) => setForm({ ...form, quantidadeFraldas: e.target.value })} />
+                </label>
+              </div>}
+
+              <label className="form-field">
+                <span>Recadinho para o Bernardo (opcional)</span>
+                <textarea placeholder="Escreva uma mensagem carinhosa" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
+              </label>
 
               <button disabled={loading || prazoEncerrado}>
                 {prazoEncerrado ? "Prazo encerrado" : loading ? "Enviando..." : "Confirmar presença"}
@@ -434,7 +471,7 @@ export default function Home() {
           <div className="gift-highlight">
             <strong>👶 Fraldas M ou G para o Bernardo</strong>
             <span>
-              + um mimo para o nosso pequeno explorador 💚
+              Se desejar, um mimo é opcional 💚
             </span>
           </div>
         </section>
@@ -480,10 +517,10 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
       );
 
       if (Array.isArray(salvos)) {
-        setCurtidos(salvos.map(String));
+        queueMicrotask(() => setCurtidos(salvos.map(String)));
       }
     } catch {
-      setCurtidos([]);
+      queueMicrotask(() => setCurtidos([]));
     }
   }, []);
 
