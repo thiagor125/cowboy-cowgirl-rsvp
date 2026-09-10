@@ -275,6 +275,8 @@ export default function Home() {
 
   return (
     <main className="site">
+      <SafariScenery />
+
       <button type="button" onClick={() => setMusicOpen(!musicOpen)} className="music-btn">
         {musicOpen ? "🔇 Parar música" : "🎵 Tocar música"}
       </button>
@@ -292,7 +294,7 @@ export default function Home() {
 
       <aside className="floating-invite">
         <Image
-          src="/convite-bernardo-25-outubro.png"
+          src="/convite-bernardo-25-outubro-v2.png"
           alt="Convite para o chá de fraldas do Bernardo"
           width={620}
           height={900}
@@ -471,7 +473,7 @@ export default function Home() {
           <div className="gift-highlight">
             <strong>👶 Fraldas M ou G para o Bernardo</strong>
             <span>
-              Se desejar, um mimo é opcional 💚
+              + mimo 💚
             </span>
           </div>
         </section>
@@ -502,6 +504,76 @@ export default function Home() {
         </footer>
       </section>
     </main>
+  );
+}
+
+function SafariScenery() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(".section-card"));
+    let animationFrame = 0;
+
+    const updateScroll = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        root.style.setProperty("--safari-drift-slow", `${window.scrollY * -0.045}px`);
+        root.style.setProperty("--safari-drift-medium", `${window.scrollY * -0.075}px`);
+        root.style.setProperty("--safari-drift-fast", `${window.scrollY * -0.11}px`);
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("is-visible", entry.isIntersecting);
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8%" }
+    );
+
+    cards.forEach((card) => {
+      card.classList.add("reveal-on-scroll");
+      observer.observe(card);
+    });
+
+    updateScroll();
+    window.addEventListener("scroll", updateScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", updateScroll);
+      observer.disconnect();
+      cards.forEach((card) => card.classList.remove("reveal-on-scroll", "is-visible"));
+      root.style.removeProperty("--safari-drift-slow");
+      root.style.removeProperty("--safari-drift-medium");
+      root.style.removeProperty("--safari-drift-fast");
+    };
+  }, []);
+
+  return (
+    <div className="safari-scenery" aria-hidden="true">
+      <div className="jungle-edge jungle-edge-left">
+        <span className="jungle-crown">🌿</span>
+        <span className="jungle-tree">🌴</span>
+        <span className="jungle-leaf leaf-a">🍃</span>
+        <span className="jungle-leaf leaf-b">🌿</span>
+      </div>
+      <div className="jungle-edge jungle-edge-right">
+        <span className="jungle-crown">🌿</span>
+        <span className="jungle-tree">🌴</span>
+        <span className="jungle-leaf leaf-c">🍃</span>
+        <span className="jungle-leaf leaf-d">🌿</span>
+      </div>
+
+      <span className="scroll-animal animal-giraffe">🦒</span>
+      <span className="scroll-animal animal-lion">🦁</span>
+      <span className="scroll-animal animal-elephant">🐘</span>
+      <span className="scroll-animal animal-monkey">🐒</span>
+
+      <div className="floating-leaves">
+        <span>🍃</span><span>🌿</span><span>🍂</span><span>🍃</span><span>🌿</span>
+      </div>
+    </div>
   );
 }
 
