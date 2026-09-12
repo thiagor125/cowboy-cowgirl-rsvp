@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
+import { useEffect, useMemo, useState } from "react";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
 import { collection, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import "./admin.css";
@@ -21,6 +21,7 @@ type Confirmacao = {
 };
 
 const numero = (valor: unknown) => Math.max(0, Number(valor) || 0);
+const ADMIN_EMAILS = ["thiagor402@gmail.com", "amandarincon2002@gmail.com"];
 const linkWhatsApp = (telefone: string) => {
   const digitos = telefone.replace(/\D/g, "");
   return `https://wa.me/${digitos.startsWith("55") ? digitos : `55${digitos}`}`;
@@ -29,8 +30,6 @@ const linkWhatsApp = (telefone: string) => {
 export default function AdminPage() {
   const [usuario, setUsuario] = useState<User | null>(null);
   const [carregandoAuth, setCarregandoAuth] = useState(true);
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
   const [erroLogin, setErroLogin] = useState("");
   const [entrando, setEntrando] = useState(false);
   const [confirmacoes, setConfirmacoes] = useState<Confirmacao[]>([]);
@@ -38,8 +37,15 @@ export default function AdminPage() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "sim" | "nao">("todos");
 
-  useEffect(() => onAuthStateChanged(auth, (user) => {
-    setUsuario(user);
+  useEffect(() => onAuthStateChanged(auth, async (user) => {
+    const emailUsuario = user?.email?.toLowerCase();
+    if (user && (!emailUsuario || !ADMIN_EMAILS.includes(emailUsuario))) {
+      setErroLogin("Este e-mail não está autorizado a acessar o painel.");
+      await signOut(auth);
+      setUsuario(null);
+    } else {
+      setUsuario(user);
+    }
     setCarregandoAuth(false);
   }), []);
 
@@ -101,14 +107,15 @@ export default function AdminPage() {
     });
   }, [busca, confirmacoes, filtro]);
 
-  async function entrar(event: FormEvent) {
-    event.preventDefault();
+  async function entrarComGoogle() {
     setEntrando(true);
     setErroLogin("");
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), senha);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      await signInWithPopup(auth, provider);
     } catch {
-      setErroLogin("E-mail ou senha incorretos. Confira os dados e tente novamente.");
+      setErroLogin("Não foi possível entrar com o Google. Tente novamente.");
     } finally {
       setEntrando(false);
     }
@@ -137,12 +144,11 @@ export default function AdminPage() {
       <section className="admin-login-card">
         <div className="admin-brand"><span>🦁</span><div><small>CHÁ DO BERNARDO</small><h1>Painel da família</h1></div></div>
         <p>Acesso reservado para acompanhar as confirmações dos convidados.</p>
-        <form onSubmit={entrar} className="admin-login-form">
-          <label>E-mail<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" /></label>
-          <label>Senha<input type="password" autoComplete="current-password" required value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Sua senha" /></label>
+        <div className="admin-login-form">
           {erroLogin && <p className="admin-error" role="alert">{erroLogin}</p>}
-          <button disabled={entrando}>{entrando ? "Entrando…" : "Entrar no painel"}</button>
-        </form>
+          <button type="button" onClick={entrarComGoogle} disabled={entrando}>{entrando ? "Entrando…" : "Entrar com Google"}</button>
+          <small>Acesso permitido somente para os e-mails cadastrados da família.</small>
+        </div>
         <Link href="/">← Voltar para o convite</Link>
       </section>
     </main>;
