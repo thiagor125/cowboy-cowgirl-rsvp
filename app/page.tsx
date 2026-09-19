@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { FirebaseError } from "firebase/app";
 import { useEffect, useState } from "react";
 import {
   addDoc,
@@ -61,6 +62,7 @@ export default function Home() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [recadoNaoPublicado, setRecadoNaoPublicado] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
   const [recadinhos, setRecadinhos] = useState<Recadinho[]>([]);
 
@@ -185,6 +187,11 @@ export default function Home() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!form.nome.trim() || form.nome.trim().length > 120 || form.mensagem.trim().length > 1000) {
+      alert("Informe seu nome (até 120 caracteres) e um recado de até 1000 caracteres.");
+      return;
+    }
+
     const telefoneLimpo = form.telefone.replace(/\D/g, "");
     const adultos = Number(form.adultos);
     const criancas = Number(form.criancas);
@@ -248,6 +255,7 @@ export default function Home() {
             createdAt: serverTimestamp(),
           });
         } catch (recadinhoError) {
+          setRecadoNaoPublicado(true);
           console.error(
             "Presença confirmada, mas o recadinho não foi publicado:",
             recadinhoError
@@ -259,7 +267,11 @@ export default function Home() {
       fireConfetti();
     } catch (error) {
       console.error(error);
-      alert("Erro ao confirmar presença. Verifique o Firebase ou tente novamente.");
+      alert(
+        error instanceof FirebaseError && error.code === "permission-denied"
+          ? "Não foi possível registrar a confirmação. Se você já confirmou com este WhatsApp, envie seu recado na seção Recadinhos para o Bernardo, sem confirmar novamente."
+          : "Não foi possível confirmar agora. Verifique sua conexão e tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -367,6 +379,9 @@ export default function Home() {
         <section id="confirmar" className="section-card rsvp">
           <h2>Confirme sua presença</h2>
 
+          <p className="center">
+            Já confirmou? <a href="#novo-recado">Envie apenas um recadinho aqui.</a>
+          </p>
           <DiaperSuggestion stats={fraldasStats} />
 
           {success ? (
@@ -374,6 +389,13 @@ export default function Home() {
               <div className="success">
                 <div className="success-icon">🎉</div>
                 <h3>Presença confirmada!</h3>
+                {recadoNaoPublicado && (
+                  <p role="alert">
+                    Seu recado não foi publicado. Copie a mensagem abaixo e tente
+                    enviá-la na <a href="#novo-recado">seção de recadinhos</a>.
+                    <span style={{ display: "block", whiteSpace: "pre-wrap" }}>{form.mensagem}</span>
+                  </p>
+                )}
                 <p>
                   Obrigado por confirmar. Estamos muito felizes em compartilhar
                   esse momento especial do Bernardo com você.
@@ -385,7 +407,7 @@ export default function Home() {
             <form onSubmit={handleSubmit}>
               <label className="form-field">
                 <span>Nome completo</span>
-                <input required autoComplete="name" placeholder="Seu nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <input required maxLength={120} autoComplete="name" placeholder="Seu nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
               </label>
               <label className="form-field">
                 <span>WhatsApp</span>
@@ -443,7 +465,7 @@ export default function Home() {
 
               <label className="form-field">
                 <span>Recadinho para o Bernardo (opcional)</span>
-                <textarea placeholder="Escreva uma mensagem carinhosa" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
+                <textarea maxLength={1000} placeholder="Escreva uma mensagem carinhosa" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
               </label>
 
               <button disabled={loading}>
@@ -675,6 +697,8 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
         </div>
       </div>
 
+      <RecadinhoForm />
+
       {recadinhos.length === 0 ? (
         <div className="recadinhos-empty">
           <span>🦁💌</span>
@@ -683,7 +707,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
             As mensagens preenchidas no formulário de confirmação aparecerão
             aqui automaticamente.
           </p>
-          <a href="#confirmar">Deixar um recadinho</a>
+          <a href="#novo-recado">Deixar um recadinho</a>
         </div>
       ) : (
         <>
@@ -821,5 +845,63 @@ function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
 
       <p className="diaper-live">🌿 Atualizado em tempo real conforme as confirmações.</p>
     </div>
+  );
+}
+
+
+function RecadinhoForm() {
+  const [nome, setNome] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [enviado, setEnviado] = useState(false);
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    if (enviando) return;
+    setErro("");
+    setEnviado(false);
+
+    const nomeLimpo = nome.trim();
+    const mensagemLimpa = mensagem.trim();
+    if (!nomeLimpo || nomeLimpo.length > 120 || !mensagemLimpa || mensagemLimpa.length > 1000) {
+      setErro("Preencha seu nome (até 120 caracteres) e o recado (até 1000 caracteres).");
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      await addDoc(collection(db, "recadinhos"), {
+        nome: nomeLimpo,
+        mensagem: mensagemLimpa,
+        likes: 0,
+        createdAt: serverTimestamp(),
+      });
+      setMensagem("");
+      setEnviado(true);
+    } catch (error) {
+      console.error("Erro ao publicar recadinho:", error);
+      setErro("Não foi possível publicar seu recado. Sua mensagem foi mantida; tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <form id="novo-recado" className="rsvp" onSubmit={enviar}>
+      <h3>Deixe um recadinho</h3>
+      <p>Você pode enviar uma mensagem mesmo se já confirmou sua presença. O nome e o recado aparecerão neste mural público.</p>
+      <label className="form-field">
+        <span>Seu nome</span>
+        <input required maxLength={120} autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} />
+      </label>
+      <label className="form-field">
+        <span>Recadinho para o Bernardo</span>
+        <textarea required maxLength={1000} value={mensagem} onChange={(e) => setMensagem(e.target.value)} disabled={enviando} />
+      </label>
+      {erro && <p role="alert">{erro}</p>}
+      {enviado && <p role="status">Recadinho publicado com carinho! 💚</p>}
+      <button type="submit" disabled={enviando}>{enviando ? "Enviando..." : "Enviar recadinho"}</button>
+    </form>
   );
 }
