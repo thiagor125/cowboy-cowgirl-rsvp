@@ -19,7 +19,6 @@ import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
 const EVENT_DATE = new Date("2026-10-25T12:00:00");
-const RSVP_LIMIT = new Date("2026-09-17T23:59:59");
 
 const ENDERECO = "Salão de Festas Débora — QSC 19 Gleba L., Taguatinga - DF";
 const GOOGLE_MAPS_URL =
@@ -75,8 +74,6 @@ export default function Home() {
     quantidadeFraldas: "1",
     mensagem: "",
   });
-
-  const prazoEncerrado = new Date() > RSVP_LIMIT;
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -187,11 +184,6 @@ export default function Home() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (prazoEncerrado) {
-      alert("Prazo encerrado.");
-      return;
-    }
 
     const telefoneLimpo = form.telefone.replace(/\D/g, "");
     const adultos = Number(form.adultos);
@@ -323,7 +315,6 @@ export default function Home() {
 
           <div className="event-list">
             <p>📅 25/10/2026 • a partir das 12h</p>
-            <p>⏳ Confirmações até 17/09</p>
             <p>🦁 Tema safari</p>
           </div>
 
@@ -375,7 +366,6 @@ export default function Home() {
 
         <section id="confirmar" className="section-card rsvp">
           <h2>Confirme sua presença</h2>
-          <p className="center">Prazo para confirmação: <strong>17/09</strong></p>
 
           <DiaperSuggestion stats={fraldasStats} />
 
@@ -456,8 +446,8 @@ export default function Home() {
                 <textarea placeholder="Escreva uma mensagem carinhosa" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
               </label>
 
-              <button disabled={loading || prazoEncerrado}>
-                {prazoEncerrado ? "Prazo encerrado" : loading ? "Enviando..." : "Confirmar presença"}
+              <button disabled={loading}>
+                {loading ? "Enviando..." : "Confirmar presença"}
               </button>
             </form>
           )}
