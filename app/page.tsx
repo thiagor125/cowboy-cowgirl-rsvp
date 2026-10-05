@@ -19,7 +19,7 @@ import {
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
-const EVENT_DATE = new Date("2026-10-25T12:00:00");
+const EVENT_DATE = new Date("2026-10-24T12:00:00");
 
 const ENDERECO = "Salão de Festas Débora — QSC 19 Gleba L., Taguatinga - DF";
 const GOOGLE_MAPS_URL =
@@ -298,7 +298,7 @@ export default function Home() {
 
       <aside className="floating-invite">
         <Image
-          src="/convite-bernardo-25-outubro-v2.png"
+          src="/convite-bernardo-safari.png"
           alt="Convite para o chá de fraldas do Bernardo"
           width={620}
           height={900}
@@ -326,7 +326,7 @@ export default function Home() {
           </div>
 
           <div className="event-list">
-            <p>📅 25/10/2026 • a partir das 12h</p>
+            <p>📅 24/10/2026 • a partir das 12h</p>
             <p>🦁 Tema safari</p>
           </div>
 
@@ -400,7 +400,7 @@ export default function Home() {
                   Obrigado por confirmar. Estamos muito felizes em compartilhar
                   esse momento especial do Bernardo com você.
                 </p>
-                <strong>Esperamos você no dia 25 de outubro às 12h 🦁💚</strong>
+                <strong>Esperamos você no dia 24 de outubro às 12h 🦁💚</strong>
               </div>
             </div>
           ) : (
