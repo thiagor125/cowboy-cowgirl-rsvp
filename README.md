@@ -34,3 +34,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Acesso ao painel da família
+
+O `/admin` usa Firebase Authentication com e-mail e senha, sem login por Google.
+Mantenha o provedor **E-mail/senha** habilitado no Firebase. Não há cadastro público.
+
+As contas autorizadas ficam em `lib/admin-auth.ts`. As regras do Firestore também
+precisam autorizar os mesmos e-mails e exigir `email_verified == true`; a lista
+no navegador não substitui as regras do banco.
+
+Para uma conta já cadastrada, informe o e-mail no painel e use **Criar ou
+redefinir minha senha**. O responsável define a senha pelo link recebido,
+sem salvar credenciais no repositório. Contas novas precisam ser cadastradas
+no Firebase e ter o e-mail verificado antes de consultar as confirmações.
+
+Execute `npm test` (Node.js 24), `npm run lint` e `npm run build` para validar.
