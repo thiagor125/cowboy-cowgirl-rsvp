@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
-import { adminAuthErrorMessage, isAdminEmail } from "@/lib/admin-auth";
+import { ADMIN_ACCOUNT, adminAuthErrorMessage, isAdminLogin, isAuthorizedAdmin } from "@/lib/admin-auth";
 import { collection, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import "./admin.css";
@@ -33,17 +33,16 @@ export default function AdminPage() {
   const [carregandoAuth, setCarregandoAuth] = useState(true);
   const [erroLogin, setErroLogin] = useState("");
   const [entrando, setEntrando] = useState(false);
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
-  const [avisoLogin, setAvisoLogin] = useState("");
   const [confirmacoes, setConfirmacoes] = useState<Confirmacao[]>([]);
   const [erroDados, setErroDados] = useState("");
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "sim" | "nao">("todos");
 
   useEffect(() => onAuthStateChanged(auth, async (user) => {
-    if (user && !isAdminEmail(user.email)) {
-      setErroLogin("Este e-mail não está autorizado a acessar o painel.");
+    if (user && !isAuthorizedAdmin(user, ADMIN_ACCOUNT.uid)) {
+      setErroLogin("Esta conta não está autorizada a acessar o painel.");
       await signOut(auth);
       setUsuario(null);
     } else {
@@ -113,34 +112,14 @@ export default function AdminPage() {
   async function entrarComSenha(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErroLogin("");
-    setAvisoLogin("");
-    if (!isAdminEmail(email)) {
-      setErroLogin("Este e-mail não está autorizado a acessar o painel.");
+    if (!isAdminLogin(login)) {
+      setErroLogin("Confira seu usuário e sua senha.");
       return;
     }
     setEntrando(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), senha);
+      await signInWithEmailAndPassword(auth, ADMIN_ACCOUNT.email, senha);
       setSenha("");
-    } catch (error) {
-      setErroLogin(adminAuthErrorMessage(error instanceof FirebaseError ? error.code : ""));
-    } finally {
-      setEntrando(false);
-    }
-  }
-
-  async function redefinirSenha() {
-    setErroLogin("");
-    setAvisoLogin("");
-    if (!isAdminEmail(email)) {
-      setErroLogin("Informe o e-mail autorizado da família para criar ou redefinir sua senha.");
-      return;
-    }
-    setEntrando(true);
-    try {
-      auth.languageCode = "pt-BR";
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      setAvisoLogin("Se o e-mail estiver cadastrado, você receberá um link para definir sua senha. Confira também o spam.");
     } catch (error) {
       setErroLogin(adminAuthErrorMessage(error instanceof FirebaseError ? error.code : ""));
     } finally {
@@ -172,17 +151,15 @@ export default function AdminPage() {
         <div className="admin-brand"><span>🧸</span><div><small>CHÁ DO LUCCA</small><h1>Painel da família</h1></div></div>
         <p>Acesso reservado para acompanhar as confirmações dos convidados.</p>
         <form className="admin-login-form" onSubmit={entrarComSenha}>
-          <label htmlFor="admin-email">E-mail
-            <input id="admin-email" type="email" autoComplete="username" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} disabled={entrando} placeholder="seu@email.com" />
+          <label htmlFor="admin-login">Usuário
+            <input id="admin-login" type="text" autoComplete="username" required maxLength={80} value={login} onChange={(event) => setLogin(event.target.value)} disabled={entrando} placeholder="Seu usuário" autoCapitalize="none" spellCheck={false} />
           </label>
           <label htmlFor="admin-password">Senha
             <input id="admin-password" type="password" autoComplete="current-password" required value={senha} onChange={(event) => setSenha(event.target.value)} disabled={entrando} />
           </label>
           {erroLogin && <p className="admin-error" role="alert">{erroLogin}</p>}
-          {avisoLogin && <p className="admin-notice" role="status">{avisoLogin}</p>}
           <button type="submit" disabled={entrando}>{entrando ? "Aguarde…" : "Entrar no painel"}</button>
-          <button type="button" className="admin-password-reset" onClick={redefinirSenha} disabled={entrando}>Criar ou redefinir minha senha</button>
-          <small>Acesso permitido somente para os e-mails cadastrados da família.</small>
+          <small>Acesso exclusivo dos responsáveis pelo chá do Lucca.</small>
         </form>
         <Link href="/">← Voltar para o convite</Link>
       </section>
@@ -192,7 +169,7 @@ export default function AdminPage() {
   return <main className="admin-page">
     <header className="admin-header">
       <div><small>🧸 CHÁ DE FRALDAS DO LUCCA</small><h1>Confirmações</h1><p>Visão geral da lista de convidados, acompanhantes e fraldas.</p></div>
-      <div className="admin-user"><span>{usuario.email}</span><button onClick={() => signOut(auth)}>Sair</button></div>
+      <div className="admin-user"><span>{ADMIN_ACCOUNT.username}</span><button onClick={() => signOut(auth)}>Sair</button></div>
     </header>
 
     <section className="admin-stats" aria-label="Resumo das confirmações">

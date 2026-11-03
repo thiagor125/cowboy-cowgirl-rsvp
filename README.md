@@ -37,16 +37,20 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Acesso ao painel da família
 
-O `/admin` usa Firebase Authentication com e-mail e senha, sem login por Google.
-Mantenha o provedor **E-mail/senha** habilitado no Firebase. Não há cadastro público.
+O `/admin` usa usuário e senha próprios do convite. O login `lucca` é associado
+internamente a uma conta dedicada do Firebase Authentication, sem usar a conta
+pessoal do proprietário. Mantenha o provedor **E-mail/senha** habilitado.
 
-As contas autorizadas ficam em `lib/admin-auth.ts`. As regras do Firestore também
-precisam autorizar os mesmos e-mails e exigir `email_verified == true`; a lista
-no navegador não substitui as regras do banco.
+Para provisionar o acesso:
 
-Para uma conta já cadastrada, informe o e-mail no painel e use **Criar ou
-redefinir minha senha**. O responsável define a senha pelo link recebido,
-sem salvar credenciais no repositório. Contas novas precisam ser cadastradas
-no Firebase e ter o e-mail verificado antes de consultar as confirmações.
+1. Crie a conta dedicada indicada em `lib/admin-auth.ts` no Firebase Authentication.
+   O responsável define a senha diretamente no Firebase; não grave senhas no Git.
+2. Preencha `ADMIN_ACCOUNT.uid` com o UID da conta criada.
+3. Autorize esse UID nas regras do Firestore para consultar `confirmacoes`.
+   O UID vazio bloqueia o acesso. A validação no navegador não substitui as regras.
+
+Não há cadastro público ou recuperação por uma caixa de e-mail pessoal.
+Trocas de senha são feitas pelo responsável no Firebase Authentication.
+Cada novo cliente precisa de acesso e dados separados antes da entrega.
 
 Execute `npm test` (Node.js 24), `npm run lint` e `npm run build` para validar.
