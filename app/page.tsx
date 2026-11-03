@@ -19,16 +19,13 @@ import {
 import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 
-const EVENT_DATE = new Date("2026-10-24T12:00:00");
+const EVENT_DATE = new Date("2026-12-12T15:00:00-03:00");
 
 const ENDERECO = "Salão de Festas Débora — QSC 19 Gleba L., Taguatinga - DF";
 const GOOGLE_MAPS_URL =
   "https://www.google.com/maps/place/Sal%C3%A3o+de+festas+D%C3%A9bora/@-15.8546872,-48.0554569,959m/data=!3m2!1e3!4b1!4m6!3m5!1s0x935a336072fb292b:0xe2ad8d5f7aa58ac3!8m2!3d-15.8546872!4d-48.0554569!16s%2Fg%2F11qn0kwcd7?hl=pt-br&entry=ttu&g_ep=EgoyMDI2MDkwNi4wIKXMDSoASAFQAw%3D%3D";
 const WAZE_URL =
   "https://www.waze.com/live-map/directions/salao-de-festas-debora-qsc-19-gleba-l.-taguatinga?to=place.w.204408425.2044346399.15980226";
-
-const YOUTUBE_MUSIC_URL =
-  "https://www.youtube.com/embed/eebLcRDgbBg?autoplay=1&loop=1&playlist=eebLcRDgbBg";
 
 const DIAPER_SIZES = ["M", "G"] as const;
 
@@ -63,7 +60,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [recadoNaoPublicado, setRecadoNaoPublicado] = useState(false);
-  const [musicOpen, setMusicOpen] = useState(false);
   const [recadinhos, setRecadinhos] = useState<Recadinho[]>([]);
 
   const [form, setForm] = useState({
@@ -269,7 +265,7 @@ export default function Home() {
       console.error(error);
       alert(
         error instanceof FirebaseError && error.code === "permission-denied"
-          ? "Não foi possível registrar a confirmação. Se você já confirmou com este WhatsApp, envie seu recado na seção Recadinhos para o Bernardo, sem confirmar novamente."
+          ? "Não foi possível registrar a confirmação. Se você já confirmou com este WhatsApp, envie seu recado na seção Recadinhos para o Lucca, sem confirmar novamente."
           : "Não foi possível confirmar agora. Verifique sua conexão e tente novamente."
       );
     } finally {
@@ -279,59 +275,57 @@ export default function Home() {
 
   return (
     <main className="site">
-      <SafariScenery />
+      <PrinceScenery />
 
-      <button type="button" onClick={() => setMusicOpen(!musicOpen)} className="music-btn">
-        {musicOpen ? "🔇 Parar música" : "🎵 Tocar música"}
-      </button>
-
-      {musicOpen && (
-        <div className="music-player">
-          <iframe
-            src={YOUTUBE_MUSIC_URL}
-            title="Música"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
-        </div>
-      )}
+      <header className="site-header">
+        <a className="family-mark" href="#inicio" aria-label="Chá do Lucca, início">
+          <span aria-hidden="true">L</span><span>Chá do Lucca<small>Um pequeno príncipe. Muito amor.</small></span>
+        </a>
+        <nav aria-label="Navegação do convite">
+          <a href="#local">O encontro</a>
+          <a href="#presentes">Presentes</a>
+          <a href="#confirmar" className="nav-rsvp">Confirmar presença <span aria-hidden="true">↗</span></a>
+        </nav>
+      </header>
 
       <aside className="floating-invite">
         <Image
-          src="/convite-bernardo-safari.png"
-          alt="Convite para o chá de fraldas do Bernardo"
-          width={620}
-          height={900}
+          src="/convite-lucca.png"
+          alt="Convite para o chá de fraldas do Lucca"
+          width={1188}
+          height={1670}
+          sizes="(max-width: 980px) 92vw, 33vw"
           priority
           className="invite-img"
         />
       </aside>
 
       <section className="content">
-        <section className="hero-section">
-          <p className="eyebrow">NOSSO PEQUENO EXPLORADOR ESTÁ CHEGANDO</p>
+        <section id="inicio" className="hero-section">
+          <p className="eyebrow"><span aria-hidden="true">✦</span> UM NOVO AMOR ESTÁ CHEGANDO</p>
 
           <h1>
-            Chá de Fraldas <span>do Bernardo</span>
+            <span className="hero-occasion">Chá de fraldas do</span>
+            <span className="hero-name">Lucca<span className="name-star" aria-hidden="true">✧</span></span>
           </h1>
 
           <p className="subtitle">
-            Confirme sua presença e venha celebrar com a gente a chegada do
-            nosso pequeno explorador.
+            Um pequeno príncipe, um mundo de amor.
+            Venha celebrar com a gente esse novo capítulo da nossa família.
           </p>
 
           <div className="actions">
-            <a href="#confirmar" className="btn primary">Eu vou!</a>
-            <a href="#local" className="btn green">Ver local</a>
+            <a href="#confirmar" className="btn primary">Confirmar minha presença <span aria-hidden="true">↗</span></a>
+            <a href="#local" className="btn secondary">Como chegar</a>
           </div>
 
           <div className="event-list">
-            <p>📅 24/10/2026 • a partir das 12h</p>
-            <p>🦁 Tema safari</p>
+            <div><small>GUARDE ESSA DATA</small><strong>12 de dezembro</strong><span>2026 · sábado</span></div>
+            <div><small>NOSSO ENCONTRO</small><strong>Às 15 horas</strong><span>Uma tarde para celebrar</span></div>
           </div>
 
           <div className="countdown">
-            <span>Contagem regressiva</span>
+            <span>Falta pouco para esse abraço</span>
 
             <div className="countdown-grid">
               <TimeBox label="Dias" value={timeLeft.dias} />
@@ -343,8 +337,8 @@ export default function Home() {
         </section>
 
         <section id="local" className="section-card location-card">
-          <span className="section-kicker">🗺️ COMO CHEGAR</span>
-          <h2>Localização</h2>
+          <span className="section-kicker">01 / O ENCONTRO</span>
+          <h2>Um lugar para celebrar</h2>
           <p>Toque no aplicativo que você prefere e abra a rota até o salão.</p>
 
           <div className="map-box">
@@ -364,20 +358,23 @@ export default function Home() {
         </section>
 
         <section className="section-card soft">
-          <h2>Mensagem especial</h2>
+          <span className="section-kicker">COM AMOR, MAMÃE E PAPAI</span>
+          <h2>A espera mais bonita</h2>
           <p>
-            Oi, pessoal! A mamãe e o papai vão fazer o chá de fraldas do
-            Bernardo para celebrar a chegada do nosso pequeno explorador.
-            Ficaremos muito felizes com sua presença!
+            Estamos preparando o coração para receber o Lucca. E queremos
+            dividir a alegria dessa espera com as pessoas que fazem parte da
+            nossa história.
           </p>
           <p>
-            Quando eu chegar, meus dias serão cheios de amor, carinho e muitas
-            fraldas para usar. 😍
+            Venha passar uma tarde com a gente, entre abraços, boas conversas
+            e muito carinho pelo nosso pequeno príncipe.
           </p>
         </section>
 
         <section id="confirmar" className="section-card rsvp">
-          <h2>Confirme sua presença</h2>
+          <span className="section-kicker">02 / VOCÊ FAZ PARTE</span>
+          <h2>Vamos celebrar juntos?</h2>
+          <p>Preencha os dados abaixo para prepararmos tudo com carinho.</p>
 
           <p className="center">
             Já confirmou? <a href="#novo-recado">Envie apenas um recadinho aqui.</a>
@@ -398,9 +395,9 @@ export default function Home() {
                 )}
                 <p>
                   Obrigado por confirmar. Estamos muito felizes em compartilhar
-                  esse momento especial do Bernardo com você.
+                  esse momento especial do Lucca com você.
                 </p>
-                <strong>Esperamos você no dia 24 de outubro às 12h 🦁💚</strong>
+                <strong>Esperamos você no dia 12 de dezembro às 15h 🧸🤎</strong>
               </div>
             </div>
           ) : (
@@ -464,7 +461,7 @@ export default function Home() {
               </div>}
 
               <label className="form-field">
-                <span>Recadinho para o Bernardo (opcional)</span>
+                <span>Recadinho para o Lucca (opcional)</span>
                 <textarea maxLength={1000} placeholder="Escreva uma mensagem carinhosa" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
               </label>
 
@@ -475,17 +472,18 @@ export default function Home() {
           )}
         </section>
 
-        <section className="section-card gifts">
-          <h2>Presentes</h2>
-          <div className="gift-icon">🎁</div>
+        <section id="presentes" className="section-card gifts">
+          <span className="section-kicker">03 / PEQUENOS CARINHOS</span>
+          <h2>O melhor presente é você</h2>
 
           <p>Sua presença já nos deixa muito felizes!</p>
-          <p>Para quem quiser contribuir com o enxoval:</p>
+          <p>Para quem quiser contribuir com o enxoval, sugerimos fraldas M ou G.</p>
 
           <div className="gift-highlight">
-            <strong>👶 Fraldas M ou G para o Bernardo</strong>
+            <strong>Fraldas M ou G</strong>
             <span>
-              + mimo 💚
+              Se quiser trazer um mimo, produtos de higiene para o Lucca serão
+              muito bem-vindos. É opcional — sua presença é o mais importante!
             </span>
           </div>
         </section>
@@ -494,23 +492,23 @@ export default function Home() {
 
         <footer>
           <strong>Esperamos você!</strong>
-          <span>Com carinho, família do Bernardo 🦁🌿</span>
+          <span>Com carinho, família do Lucca 🧸✨</span>
 
           <div className="whatsapp-footer">
             <a
-              href="https://wa.me/5561998655774?text=Olá%20mamãe!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Bernardo."
+              href="https://wa.me/5561999949835?text=Olá%20mamãe!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Lucca."
               target="_blank"
               rel="noopener noreferrer"
             >
-              💚 WhatsApp da Mamãe
+              🤎 Mamãe Letícia · WhatsApp
             </a>
 
             <a
-              href="https://wa.me/5561996774753?text=Olá%20papai!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Bernardo."
+              href="https://wa.me/5561985166969?text=Olá%20papai!%20Tenho%20uma%20dúvida%20sobre%20o%20chá%20de%20fraldas%20do%20Lucca."
               target="_blank"
               rel="noopener noreferrer"
             >
-              🦁 WhatsApp do Papai
+              🧸 Papai Lorenzo · WhatsApp
             </a>
           </div>
         </footer>
@@ -519,72 +517,12 @@ export default function Home() {
   );
 }
 
-function SafariScenery() {
-  useEffect(() => {
-    const root = document.documentElement;
-    const cards = Array.from(document.querySelectorAll<HTMLElement>(".section-card"));
-    let animationFrame = 0;
-
-    const updateScroll = () => {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        root.style.setProperty("--safari-drift-slow", `${window.scrollY * -0.045}px`);
-        root.style.setProperty("--safari-drift-medium", `${window.scrollY * -0.075}px`);
-        root.style.setProperty("--safari-drift-fast", `${window.scrollY * -0.11}px`);
-      });
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle("is-visible", entry.isIntersecting);
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -8%" }
-    );
-
-    cards.forEach((card) => {
-      card.classList.add("reveal-on-scroll");
-      observer.observe(card);
-    });
-
-    updateScroll();
-    window.addEventListener("scroll", updateScroll, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", updateScroll);
-      observer.disconnect();
-      cards.forEach((card) => card.classList.remove("reveal-on-scroll", "is-visible"));
-      root.style.removeProperty("--safari-drift-slow");
-      root.style.removeProperty("--safari-drift-medium");
-      root.style.removeProperty("--safari-drift-fast");
-    };
-  }, []);
-
+function PrinceScenery() {
   return (
-    <div className="safari-scenery" aria-hidden="true">
-      <div className="jungle-edge jungle-edge-left">
-        <span className="jungle-crown">🌿</span>
-        <span className="jungle-tree">🌴</span>
-        <span className="jungle-leaf leaf-a">🍃</span>
-        <span className="jungle-leaf leaf-b">🌿</span>
-      </div>
-      <div className="jungle-edge jungle-edge-right">
-        <span className="jungle-crown">🌿</span>
-        <span className="jungle-tree">🌴</span>
-        <span className="jungle-leaf leaf-c">🍃</span>
-        <span className="jungle-leaf leaf-d">🌿</span>
-      </div>
-
-      <span className="scroll-animal animal-giraffe">🦒</span>
-      <span className="scroll-animal animal-lion">🦁</span>
-      <span className="scroll-animal animal-elephant">🐘</span>
-      <span className="scroll-animal animal-monkey">🐒</span>
-
-      <div className="floating-leaves">
-        <span>🍃</span><span>🌿</span><span>🍂</span><span>🍃</span><span>🌿</span>
-      </div>
+    <div className="prince-scenery" aria-hidden="true">
+      <span className="scenery-star star-one">✧</span>
+      <span className="scenery-star star-two">✦</span>
+      <span className="scenery-star star-three">♡</span>
     </div>
   );
 }
@@ -597,7 +535,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
   useEffect(() => {
     try {
       const salvos = JSON.parse(
-        window.localStorage.getItem("bernardo-recadinhos-curtidos") || "[]"
+        window.localStorage.getItem("lucca-recadinhos-curtidos") || "[]"
       );
 
       if (Array.isArray(salvos)) {
@@ -634,7 +572,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
       const novosCurtidos = [...curtidos, id];
       setCurtidos(novosCurtidos);
       window.localStorage.setItem(
-        "bernardo-recadinhos-curtidos",
+        "lucca-recadinhos-curtidos",
         JSON.stringify(novosCurtidos)
       );
     } catch (error) {
@@ -671,11 +609,11 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
     <section id="recadinhos" className="section-card recadinhos-section">
       <div className="recadinhos-heading">
         <div>
-          <span className="recadinhos-kicker">💚 CARINHO QUE FICA GUARDADO</span>
-          <h2>Recadinhos para o Bernardo</h2>
+          <span className="section-kicker">04 / PALAVRAS QUE ABRAÇAM</span>
+          <h2>Recadinhos para o Lucca</h2>
           <p>
             Mensagens deixadas pela família e pelos amigos para o nosso pequeno
-            explorador.
+            príncipe.
           </p>
         </div>
 
@@ -701,7 +639,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
 
       {recadinhos.length === 0 ? (
         <div className="recadinhos-empty">
-          <span>🦁💌</span>
+          <span>🧸💌</span>
           <strong>Ainda não há recadinhos para mostrar.</strong>
           <p>
             As mensagens preenchidas no formulário de confirmação aparecerão
@@ -715,7 +653,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
             <article className="recadinho-card recadinho-destaque">
               <div className="recadinho-top">
                 <div className="recadinho-avatar">
-                  {iniciais(destaque.nome) || "💚"}
+                  {iniciais(destaque.nome) || "🤎"}
                 </div>
                 <div>
                   <strong>{destaque.nome}</strong>
@@ -727,7 +665,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
               <blockquote>“{destaque.mensagem}”</blockquote>
 
               <div className="recadinho-bottom">
-                <span>🌿 🦁 🌿</span>
+                <span>✨ 🧸 ✨</span>
                 <button
                   type="button"
                   className={curtidos.includes(destaque.id) ? "liked" : ""}
@@ -748,7 +686,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
                 <article className="recadinho-card" key={recadinho.id}>
                   <div className="recadinho-top">
                     <div className="recadinho-avatar">
-                      {iniciais(recadinho.nome) || "💚"}
+                      {iniciais(recadinho.nome) || "🤎"}
                     </div>
                     <div>
                       <strong>{recadinho.nome}</strong>
@@ -760,7 +698,7 @@ function RecadinhosSection({ recadinhos }: { recadinhos: Recadinho[] }) {
                   <blockquote>“{recadinho.mensagem}”</blockquote>
 
                   <div className="recadinho-bottom">
-                    <span>🌿 ♥ 🌿</span>
+                    <span>✨ ♥ ✨</span>
                     <button
                       type="button"
                       className={curtidos.includes(recadinho.id) ? "liked" : ""}
@@ -797,57 +735,23 @@ function DiaperSuggestion({ stats }: { stats: FraldasStats }) {
   return (
     <div className="diaper-panel">
       <div className="diaper-title">
-        <span>🍼</span>
         <div>
-          <h3>Sugestão de fraldas</h3>
-          <p>Veja os tamanhos já escolhidos e escolha o que achar melhor.</p>
+          <h3>Uma ajudinha para o enxoval</h3>
+          <p>Fraldas M ou G: escolha o tamanho que preferir.</p>
         </div>
       </div>
-
-      <div className="diaper-board">
-        {DIAPER_SIZES.map((size, index) => {
-          const count = stats[size];
-          const filled = Math.max(0, Math.round((count / max) * 10));
-
-          return (
-            <div className="diaper-row" key={size}>
-              <div className={`diaper-size ${index % 2 === 0 ? "green-size" : "brown-size"}`}>
-                {size}
-              </div>
-
-              <div className="diaper-icons">
-                {Array.from({ length: 10 }).map((_, iconIndex) => (
-                  <span
-                    key={iconIndex}
-                    className={iconIndex < filled ? "diaper-full" : "diaper-empty"}
-                  >
-                    🍼
-                  </span>
-                ))}
-              </div>
-
-              <div className="diaper-status">
-                {count === max && count > 0
-                  ? "Mais escolhido ✨"
-                  : count === 0
-                  ? "Poucas escolhas"
-                  : "Em andamento"}
-              </div>
-            </div>
-          );
-        })}
+      <div className="diaper-options">
+        {DIAPER_SIZES.map((size) => (
+          <div className="diaper-option" key={size}>
+            <div><span className="diaper-letter">{size}</span><span><strong>Fralda {size}</strong><small>{stats[size]} pacotes escolhidos</small></span></div>
+            <progress value={stats[size]} max={max} aria-label={`Pacotes de fraldas ${size} já escolhidos`} />
+          </div>
+        ))}
       </div>
-
-      <div className="diaper-note">
-        <span>🍼 Cada ícone representa a quantidade relativa de pacotes já escolhidos.</span>
-        <strong>Escolha entre M ou G. Toda ajuda é muito bem-vinda 🦁🌿</strong>
-      </div>
-
-      <p className="diaper-live">🌿 Atualizado em tempo real conforme as confirmações.</p>
+      <p className="diaper-live">Atualizado com carinho a cada confirmação.</p>
     </div>
   );
 }
-
 
 function RecadinhoForm() {
   const [nome, setNome] = useState("");
@@ -896,11 +800,11 @@ function RecadinhoForm() {
         <input required maxLength={120} autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} />
       </label>
       <label className="form-field">
-        <span>Recadinho para o Bernardo</span>
+        <span>Recadinho para o Lucca</span>
         <textarea required maxLength={1000} value={mensagem} onChange={(e) => setMensagem(e.target.value)} disabled={enviando} />
       </label>
       {erro && <p role="alert">{erro}</p>}
-      {enviado && <p role="status">Recadinho publicado com carinho! 💚</p>}
+      {enviado && <p role="status">Recadinho publicado com carinho! 🤎</p>}
       <button type="submit" disabled={enviando}>{enviando ? "Enviando..." : "Enviar recadinho"}</button>
     </form>
   );

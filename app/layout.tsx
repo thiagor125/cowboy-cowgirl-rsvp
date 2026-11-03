@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chá de Fraldas do Bernardo",
+  title: "Chá de Fraldas do Lucca",
   description:
-    "Convite para o chá de fraldas safari do Bernardo. Confirme sua presença e celebre com a gente!",
+    "Convite para o chá de fraldas do Lucca, nosso pequeno príncipe. Confirme sua presença e celebre com a gente!",
 };
 
 export default function RootLayout({

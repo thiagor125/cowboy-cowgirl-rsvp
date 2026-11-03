@@ -132,7 +132,7 @@ export default function AdminPage() {
     const csv = [cabecalho, ...linhas].map((linha) => linha.map(escapar).join(";")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
-    link.download = `confirmacoes-bernardo-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `confirmacoes-lucca-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -142,7 +142,7 @@ export default function AdminPage() {
   if (!usuario) {
     return <main className="admin-login-page">
       <section className="admin-login-card">
-        <div className="admin-brand"><span>🦁</span><div><small>CHÁ DO BERNARDO</small><h1>Painel da família</h1></div></div>
+        <div className="admin-brand"><span>🧸</span><div><small>CHÁ DO LUCCA</small><h1>Painel da família</h1></div></div>
         <p>Acesso reservado para acompanhar as confirmações dos convidados.</p>
         <div className="admin-login-form">
           {erroLogin && <p className="admin-error" role="alert">{erroLogin}</p>}
@@ -156,7 +156,7 @@ export default function AdminPage() {
 
   return <main className="admin-page">
     <header className="admin-header">
-      <div><small>🦁 CHÁ DE FRALDAS DO BERNARDO</small><h1>Confirmações</h1><p>Visão geral da lista de convidados, acompanhantes e fraldas.</p></div>
+      <div><small>🧸 CHÁ DE FRALDAS DO LUCCA</small><h1>Confirmações</h1><p>Visão geral da lista de convidados, acompanhantes e fraldas.</p></div>
       <div className="admin-user"><span>{usuario.email}</span><button onClick={() => signOut(auth)}>Sair</button></div>
     </header>
 
